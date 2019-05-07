@@ -14,7 +14,7 @@ int argument_handler(int argc, char* argv[])
 {
     if (argc!=3)
     {
-        printf("Number of arguments unexpected.\nPlease use the following syntax: ./server number_eletronic_counters \"password\"\n");
+        printf("Number of arguments unexpected.\nPlease use the following syntax: ./server <number_eletronic_counters> \"<password>\"\n");
         exit(1);
     }
     int number_counters = atoi(argv[1]);
