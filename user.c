@@ -38,7 +38,7 @@ void argument_handler(int argc, char* argv[])
         exit(1);
     }
     //password
-    char password[MAX_PASSWORD_LEN];
+    char password[MAX_PASSWORD_LEN+1];
     strcpy(password,argv[2]);
     if (strlen(password)<MIN_PASSWORD_LEN || strlen(password)>MAX_PASSWORD_LEN)
     {

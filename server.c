@@ -7,6 +7,7 @@
 #include <pthread.h> 
 #include <string.h>
 #include "log_writing.h"
+#include "utils.h"
 
 static bank_account_t administrator;
 
@@ -18,7 +19,7 @@ int argument_handler(int argc, char* argv[])
         exit(1);
     }
     int number_counters = atoi(argv[1]);
-    char password[MAX_PASSWORD_LEN];
+    char password[MAX_PASSWORD_LEN+1];
     strcpy(password,argv[2]);
     if (strlen(password)<MIN_PASSWORD_LEN || strlen(password)>MAX_PASSWORD_LEN)
     {
@@ -28,8 +29,21 @@ int argument_handler(int argc, char* argv[])
     //inicializing administrator account
     administrator.account_id=ADMIN_ACCOUNT_ID;
     administrator.balance=0;
-    strcpy(administrator.hash,"hash");     //////////////////////////////////////////////////////////////////to complete (auxiliary function)
-    strcpy(administrator.salt,"salt");     //////////////////////////////////////////////////////////////////to complete (auxiliary function)
+
+    char salt[SALT_LEN+1];
+    produceSalt(salt);
+    strcpy(administrator.salt, salt);
+
+    char salt_plus_password[strlen(password)+SALT_LEN+1];
+    strcpy(salt_plus_password, password);
+    strcat(salt_plus_password, salt);
+
+    char hash[HASH_LEN+1];
+    produceSha(salt_plus_password, hash);
+    strcpy(administrator.hash, hash);
+
+    printf("%s\n", salt_plus_password);
+    printf("%s\n", hash);
     accountCreationHandler(&administrator);
 
     return number_counters;
