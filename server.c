@@ -11,6 +11,27 @@
 
 static bank_account_t administrator;
 
+bank_account_t createAccount(int id, int balance, char* password)
+{
+    bank_account_t account;
+    account.account_id=id;
+    account.balance=balance;
+
+    char salt[SALT_LEN+1];
+    produceSalt(salt);
+    strcpy(account.salt, salt);
+
+    char salt_plus_password[strlen(password)+SALT_LEN+1];
+    strcpy(salt_plus_password, password);
+    strcat(salt_plus_password, salt);
+
+    char hash[HASH_LEN+1];
+    produceSha(salt_plus_password, hash);
+    strcpy(account.hash, hash);
+
+    accountCreationHandler(&account, password);
+}
+
 int argument_handler(int argc, char* argv[])
 {
     if (argc!=3)
@@ -26,26 +47,10 @@ int argument_handler(int argc, char* argv[])
         printf("Password should have a length between %d and %d.\n", MIN_PASSWORD_LEN, MAX_PASSWORD_LEN);
         exit(2);
     } 
+
     //inicializing administrator account
-    administrator.account_id=ADMIN_ACCOUNT_ID;
-    administrator.balance=0;
-
-    char salt[SALT_LEN+1];
-    produceSalt(salt);
-    strcpy(administrator.salt, salt);
-
-    char salt_plus_password[strlen(password)+SALT_LEN+1];
-    strcpy(salt_plus_password, password);
-    strcat(salt_plus_password, salt);
-
-    char hash[HASH_LEN+1];
-    produceSha(salt_plus_password, hash);
-    strcpy(administrator.hash, hash);
-
-    printf("%s\n", salt_plus_password);
-    printf("%s\n", hash);
-    accountCreationHandler(&administrator);
-
+    administrator=createAccount(ADMIN_ACCOUNT_ID, 0, password);
+    
     return number_counters;
 }
 
