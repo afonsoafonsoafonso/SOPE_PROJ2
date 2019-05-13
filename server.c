@@ -29,7 +29,9 @@ bank_account_t createAccount(int id, int balance, char* password)
     produceSha(salt_plus_password, hash);
     strcpy(account.hash, hash);
 
-    accountCreationHandler(&account, password);
+    accountCreationHandler(&account);
+
+    return account;
 }
 
 int argument_handler(int argc, char* argv[])
@@ -50,7 +52,7 @@ int argument_handler(int argc, char* argv[])
 
     //inicializing administrator account
     administrator=createAccount(ADMIN_ACCOUNT_ID, 0, password);
-    
+
     return number_counters;
 }
 

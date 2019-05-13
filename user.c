@@ -15,18 +15,71 @@ req_create_account_t create_account_argument_handler(char* args, int args_size)
 {
     /////////////////////////////////////////////////////////////// to complete
     req_create_account_t create;
-    create.account_id=0;
-    create.balance = 0;
-    create.password="";
+
+    char *aux = strtok (args," ");
+    int failure=0;
+
+    if (aux!=NULL)
+    {
+        create.account_id=atoi(aux);
+
+        aux=strtok(NULL, " ");
+        if (aux!=NULL)
+        {
+            create.balance = atoi(aux);
+
+            aux=strtok(NULL, " ");
+            if (aux!=NULL)
+                strcpy(create.password,aux);
+            else
+                failure=1;
+        }
+        else
+            failure=1;
+    }
+    else
+        failure=1;
+    aux=strtok(NULL, " ");
+    if (aux!=NULL)
+        failure=1;
+    if (failure)
+    {
+        printf("This operation expects 3 arguments.\n");
+        exit(1);
+    }
     return create;
 }
 
 req_transfer_t transfer_argument_handler(char* args, int args_size)
 {
-    /////////////////////////////////////////////////////////////// to complete
     req_transfer_t transfer;
-    create.account_id=0;
-    create.ammount=0;
+
+    char *aux = strtok (args," ");
+    int failure=0;
+
+    if (aux!=NULL)
+    {
+        transfer.account_id=atoi(aux);
+        printf("%d\n", transfer.account_id);
+
+        aux=strtok(NULL, " ");
+        if (aux!=NULL)
+            transfer.amount=atoi(aux); 
+        else
+            failure=1;
+        printf("%d\n", transfer.amount);  
+    }
+    else
+        failure=1;
+    aux=strtok(NULL, " ");
+    if (aux!=NULL)
+        failure=1;
+    if (failure)
+    {
+        printf("This operation expects 2 arguments.\n");
+        exit(1);
+    }
+
     return transfer;
 }
 
@@ -46,7 +99,7 @@ void argument_handler(int argc, char* argv[])
         exit(2);
     } 
     //operation_code
-    int operation_code=atoi(argv[3]);
+    int operation_code=atoi(argv[4]);
     if (operation_code<0 || operation_code>3)
     {
         printf("Operation code must be between 0 and 3.\n");
@@ -57,7 +110,7 @@ void argument_handler(int argc, char* argv[])
     header.pid=getpid();
     header.account_id=atoi(argv[1]);
     strcpy(header.password, password);
-    header.op_delay_ms=atoi(argv[2]);
+    header.op_delay_ms=atoi(argv[3]);
 
     req_value.header=header;
 
@@ -65,10 +118,13 @@ void argument_handler(int argc, char* argv[])
         req_value.create=create_account_argument_handler(argv[5], strlen(argv[5]));
     else if (operation_code == 3)
         req_value.transfer=transfer_argument_handler(argv[5], strlen(argv[5]));
+    else if (strlen(argv[5])!=0)
+        printf("This operation does not take any kind of arguments. Arguments inserted will be ignored.\n");
 
 }
 
 int main(int argc, char* argv[])
 {
+    argument_handler(argc, argv);
     return 0;
 }
