@@ -154,10 +154,14 @@ void argument_handler(int argc, char* argv[])
     }
     request.value.header.op_delay_ms = atoi(argv[3]);
 
-    if (operation_code == 0)
-        req_value.create=create_account_argument_handler(argv[5], strlen(argv[5]));
-    else if (operation_code == 3)
-        req_value.transfer=transfer_argument_handler(argv[5], strlen(argv[5]));
+    if (operation_code == 0) {
+        request.value.create=create_account_argument_handler(argv[5], strlen(argv[5]));
+        request.length = sizeof(req_header_t) + sizeof(req_create_account_t);
+    }
+    else if (operation_code == 3) {
+        request.value.transfer=transfer_argument_handler(argv[5], strlen(argv[5]));
+        request.length = sizeof(req_header_t) + sizeof(req_create_account_t);
+    }
     else if (strlen(argv[5])!=0)
         printf("This operation does not take any kind of arguments. Arguments inserted will be ignored.\n");
 }
