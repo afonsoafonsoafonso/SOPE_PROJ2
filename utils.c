@@ -58,3 +58,45 @@ void produceSalt(char* salt)
     strcpy(salt, "salt");
 }
 
+void createFifo(char* fifo_name)
+{
+    if (mkfifo(fifo_name,0660)<0)
+    {
+        printf("Can't create FIFO %s\n", fifo_name);
+        exit(2);
+    }
+}
+
+int openReadFifo(char* fifo_name, int * fd_dummy)
+{
+    int fd;    
+    if ((fd=open(fifo_name, O_RDONLY)) <0)
+    {
+        printf("Can't open FIFO %s\n", fifo_name);
+        exit(2);
+    }
+    *fd_dummy=open(fifo_name,O_WRONLY);
+    return fd;
+}
+
+int openWriteFifo()
+{
+    int fd;    
+    if ((fd=open(char* fifo_name, fifo_name, O_WRONLY)) <0)
+    {
+        printf("Can't open FIFO %s\n", fifo_name);
+        exit(2);
+    }
+    return fd;
+}
+
+void closeUnlinkFifo(char* fifo_name, int fd, int fd_dummy)
+{
+    close(fd);
+    close(fd_dummy);
+    if (unlink(fifo_name)<0)
+    {
+        printf("Error when destroying FIFO %s\n", fifo_name);
+        exit(0); 
+    }
+}

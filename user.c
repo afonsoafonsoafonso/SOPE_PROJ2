@@ -13,7 +13,6 @@ static req_value_t req_value;
 
 req_create_account_t create_account_argument_handler(char* args, int args_size)
 {
-    
     req_create_account_t create;
 
     //taking the arguments from the string
@@ -140,6 +139,7 @@ void argument_handler(int argc, char* argv[])
 
     req_header_t header;
     header.pid=getpid();
+    //account_id
     header.account_id=atoi(argv[1]);
     if (header.account_id<0 || header.account_id>=MAX_BANK_ACCOUNTS)
     {
@@ -164,5 +164,10 @@ void argument_handler(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
     argument_handler(argc, argv);
+    int server_fifo_fd=openWriteFifo(SERVER_FIFO_PATH);
+
+    //stuff
+
+    close(server_fifo_fd);
     return 0;
 }

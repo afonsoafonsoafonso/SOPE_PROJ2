@@ -9,9 +9,11 @@
 #include "log_writing.h"
 #include "utils.h"
 
-static bank_account_t administrator;
+int server_fifo_fd;
 
-bank_account_t createAccount(int id, int balance, char* password)
+static bank_account_t accounts[MAX_BANK_ACCOUNTS]
+
+bank_account_t createAccount(int id, int balance, char* password, int thread_id)
 {
     bank_account_t account;
     account.account_id=id;
@@ -29,7 +31,7 @@ bank_account_t createAccount(int id, int balance, char* password)
     produceSha(salt_plus_password, hash);
     strcpy(account.hash, hash);
 
-    accountCreationHandler(&account);
+    accountCreationLogWriting(&account, thread_id);
 
     return account;
 }
@@ -51,7 +53,7 @@ int argument_handler(int argc, char* argv[])
     } 
 
     //inicializing administrator account
-    administrator=createAccount(ADMIN_ACCOUNT_ID, 0, password);
+    accounts[ADMIN_ACCOUNT_ID]=createAccount(ADMIN_ACCOUNT_ID, 0, password, 0);
 
     return number_counters;
 }
@@ -59,5 +61,17 @@ int argument_handler(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
     int number_counters = argument_handler(argc, argv);
+
+    int fd_dummy;
+    createFifo(SERVER_FIFO_PATH);
+    server_fifo_fd = openReadFifo(SERVER_FIFO_PATH, &fd_dummy);
+
+    for (int i=0; i<number_counters; i++)
+    {
+        void bankOfficeOpenLogWriting(i);
+    }
+
+    closeUnlinkFifo(SERVER_FIFO_PATH, fd, fd_dummy)
+
     return 0;
 }

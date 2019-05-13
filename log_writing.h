@@ -3,4 +3,8 @@
 #include <fcntl.h>
 #include "sope.h"
 
-void accountCreationHandler(const bank_account_t *account);
+void bankOfficeOpenLogWriting(int id);
+
+void bankOfficeCloseLogWriting(int id)
+
+void accountCreationLogWriting(const bank_account_t *account);
