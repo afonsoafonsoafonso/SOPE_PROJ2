@@ -10,6 +10,7 @@
 #include "log_writing.h"
 
 static req_value_t req_value;
+static tlv_request_t request;
 
 req_create_account_t create_account_argument_handler(char* args, int args_size)
 {
@@ -128,7 +129,8 @@ void argument_handler(int argc, char* argv[])
     {
         printf("Password should have a length between %d and %d.\n", MIN_PASSWORD_LEN, MAX_PASSWORD_LEN);
         exit(2);
-    } 
+    }
+    strcpy(request.value.header.password, password); 
     //operation_code
     int operation_code=atoi(argv[4]);
     if (operation_code<0 || operation_code>3)
@@ -136,21 +138,21 @@ void argument_handler(int argc, char* argv[])
         printf("Operation code must be between 0 and 3.\n");
         exit(1);
     }
-
-    req_header_t header;
-    header.pid=getpid();
+    request.type = operation_code;
+    //pid
+    request.value.header.pid = getpid();
     //account_id
-    header.account_id=atoi(argv[1]);
-    if (header.account_id<0 || header.account_id>=MAX_BANK_ACCOUNTS)
+    if (atoi(argv[1]<0 || atoi(argv[1]) >=MAX_BANK_ACCOUNTS))
     {
         printf("Accounts numbers are all between 0 and %d.\n", MAX_BANK_ACCOUNTS);
         exit(1);
     }
-
-    strcpy(header.password, password);
-    header.op_delay_ms=atoi(argv[3]);
-
-    req_value.header=header;
+    request.value.header.account_id = atoi(argv[1]);
+    //op_delay_ms
+    if(atoi(argv[3])<0 || atoi(argv[3])>MAX_OP_DELAY_MS) {
+        printf("Op delay must be between 0 and %d.\n", MAX_OP_DELAY_MS);
+    }
+    request.value.header.op_delay_ms = atoi(argv[3]);
 
     if (operation_code == 0)
         req_value.create=create_account_argument_handler(argv[5], strlen(argv[5]));
@@ -158,8 +160,59 @@ void argument_handler(int argc, char* argv[])
         req_value.transfer=transfer_argument_handler(argv[5], strlen(argv[5]));
     else if (strlen(argv[5])!=0)
         printf("This operation does not take any kind of arguments. Arguments inserted will be ignored.\n");
-
 }
+
+/*ret_code_t pingServer(const tlv_request_t* request)
+{
+	if( (fd_server_fifo = open(SERVER_FIFO_PATH, O_WRONLY | O_APPEND)) == -1)
+	{
+		//perror("prepareReplyFIFO - Failed to open request FIFO");
+
+		tlv_reply_t reply;
+		makeOfflineReply(&reply, RC_SRV_DOWN, request->value.header.account_id, request->type);
+
+		return (logReply(STDOUT_FILENO, getpid(), &reply) < 0) ? 
+			return_error(RC_SRV_DOWN, "pingServer: logReply failed\n") : RC_SRV_DOWN;
+	}
+	return RC_OK;
+}
+
+ret_code_t makeRequest(tlv_request_t* request, const unsigned account_id, const char* password, const unsigned op_delay_ms, const unsigned op_code, const char* opArgs)
+{
+	size_t length = sizeof(req_header_t);
+
+	if(op_code == OP_CREATE_ACCOUNT)
+	{
+		int ret_code;
+		if( (ret_code = verifyCreateAccountArgs(&(request->value.create), opArgs)) != RC_OK)
+			return ret_code;
+
+		length += (sizeof(req_create_account_t));
+	}
+	else if (op_code == OP_TRANSFER)
+	{
+		int ret_code;
+		if( (ret_code = verifyTransferArgs(&(request->value.transfer), opArgs)) != RC_OK)
+			return ret_code;
+
+		length += sizeof(req_transfer_t);	
+	}
+	else
+	{
+		if(strlen(opArgs) > 0)
+			return return_error(RC_BAD_REQ_ARGS, "USAGE: Balance checking and Shutdown operations don't take arguments\n");
+	}
+
+	request->value.header.pid = getpid();
+	request->value.header.account_id = account_id;
+	request->value.header.op_delay_ms = op_delay_ms;
+	strcpy(request->value.header.password, password);
+
+	request->type = op_code;
+	request->length = length;
+
+	return RC_OK;
+}*/
 
 int main(int argc, char* argv[])
 {

@@ -70,7 +70,7 @@ void createFifo(char* fifo_name)
 int openReadFifo(char* fifo_name, int * fd_dummy)
 {
     int fd;    
-    if ((fd=open(fifo_name, O_RDONLY)) <0)
+    if ((fd=open(fifo_name, O_RDONLY | O_APPEND)) <0)
     {
         printf("Can't open FIFO %s\n", fifo_name);
         exit(2);
