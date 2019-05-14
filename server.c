@@ -8,11 +8,14 @@
 #include <string.h>
 #include "log_writing.h"
 #include "utils.h"
+#include <semaphore.h>
 
 int server_fifo_fd;
 bool closed;
 
+sem_t full, empty;
 static bank_account_t accounts[MAX_BANK_ACCOUNTS];
+static pthread_t counters[MAX_BANK_OFFICES];
 
 void initializeAccountsArray()
 {
@@ -136,6 +139,24 @@ int argument_handler(int argc, char* argv[])
     createAccount(ADMIN_ACCOUNT_ID, 0, password, 0);
 
     return number_counters;
+}
+
+void initializeSems(int counter_number) {
+    sem_init(&empty,0,counter_number);
+    sem_init(&full,0,0);
+    return;
+}
+
+void counter() {
+    // PREENCHER DEPOIS!!!!
+    return;
+}
+
+void create_counters(counter_number) {
+    for(int i=0; i<counter_number; i++) {
+        pthread_create(&counters[i], NULL, counter, NULL);
+    }
+    return;
 }
 
 int main(int argc, char* argv[])
