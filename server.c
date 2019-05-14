@@ -10,6 +10,7 @@
 #include "utils.h"
 
 int server_fifo_fd;
+bool closed;
 
 static bank_account_t accounts[MAX_BANK_ACCOUNTS];
 
@@ -104,6 +105,12 @@ bool verifyAuthorization(int id_account, int operation_code)
     return true;
 }
 
+void closeBank(int server_fifo_fd)
+{
+    closed = true;
+    //changing permission of the fifo
+}
+
 int argument_handler(int argc, char* argv[])
 {
     if (argc!=3)
@@ -133,6 +140,7 @@ int argument_handler(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
+    closed=false
     initializeAccountsArray();
     int number_counters = argument_handler(argc, argv);
 
@@ -143,7 +151,16 @@ int main(int argc, char* argv[])
     for (int i=0; i<number_counters; i++)
     {
         bankOfficeOpenLogWriting(i);
+        //create threads
     }
+
+    //ciclo (while !closed) para receber pedidos e colocar na fila de pedidos
+    //as threads vao buscar as cenas a fila de pedidos e processam os pedidos
+
+    //esperar que todas as thread terminem de processar todos os pedidos
+    /*for (int i = 0; i < 2; i++) {
+    pthread_join(tid[i], NULL);*/  
+}
 
     closeUnlinkFifo(SERVER_FIFO_PATH, server_fifo_fd, fd_dummy);
 
