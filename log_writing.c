@@ -3,7 +3,7 @@
 
 int openLog(char* file)
 {
-    int fd = open(file, O_WRONLY | O_APPEND | O_CREAT);
+    int fd = open(file, O_WRONLY | O_APPEND | O_CREAT, 0666);
     if (fd<0)
     {
         printf("Fail in opening file %s.\n", file);
