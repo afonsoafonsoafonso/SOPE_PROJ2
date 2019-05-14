@@ -288,9 +288,8 @@ int main(int argc, char* argv[])
     initializeAccountsArray();
     int counter_number = argument_handler(argc, argv);
 
-    int fd_dummy;
     createFifo(SERVER_FIFO_PATH);
-    server_fifo_fd = openReadFifo(SERVER_FIFO_PATH, &fd_dummy);
+    server_fifo_fd = openReadFifo(SERVER_FIFO_PATH);
 
     create_counters(counter_number);
 
@@ -304,7 +303,7 @@ int main(int argc, char* argv[])
     pthread_join(tid[i], NULL);*/  
 
 
-    closeUnlinkFifo(SERVER_FIFO_PATH, server_fifo_fd, fd_dummy);
+    closeUnlinkFifo(SERVER_FIFO_PATH, server_fifo_fd);
 
     return 0;
 }
