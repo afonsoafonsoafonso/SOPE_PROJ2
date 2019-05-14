@@ -166,65 +166,39 @@ void argument_handler(int argc, char* argv[])
         printf("This operation does not take any kind of arguments. Arguments inserted will be ignored.\n");
 }
 
-/*ret_code_t pingServer(const tlv_request_t* request)
-{
-	if( (fd_server_fifo = open(SERVER_FIFO_PATH, O_WRONLY | O_APPEND)) == -1)
-	{
-		//perror("prepareReplyFIFO - Failed to open request FIFO");
-
-		tlv_reply_t reply;
-		makeOfflineReply(&reply, RC_SRV_DOWN, request->value.header.account_id, request->type);
-
-		return (logReply(STDOUT_FILENO, getpid(), &reply) < 0) ? 
-			return_error(RC_SRV_DOWN, "pingServer: logReply failed\n") : RC_SRV_DOWN;
-	}
-	return RC_OK;
+int openRequestFifo() {
+    return open(SERVER_FIFO_PATH, O_WRONLY | O_APPEND);
 }
 
-ret_code_t makeRequest(tlv_request_t* request, const unsigned account_id, const char* password, const unsigned op_delay_ms, const unsigned op_code, const char* opArgs)
-{
-	size_t length = sizeof(req_header_t);
+int openReplyFifo() {
+    char reply_fifo_path[16];
+    sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, 5, getpid());
+    mkfifo(reply_fifo_path, 0666);
+    return open(reply_fifo_path, O_RDONLY | O_NONBLOCK);
+}
 
-	if(op_code == OP_CREATE_ACCOUNT)
-	{
-		int ret_code;
-		if( (ret_code = verifyCreateAccountArgs(&(request->value.create), opArgs)) != RC_OK)
-			return ret_code;
+int sendRequest(tlv_request_t request, int request_fifo_fd) {
+    if(write(request_fifo_fd, &request, sizeof(tlv_request_t))==-1) {
+        return -1;
+    }
+    return 0;
+}
 
-		length += (sizeof(req_create_account_t));
-	}
-	else if (op_code == OP_TRANSFER)
-	{
-		int ret_code;
-		if( (ret_code = verifyTransferArgs(&(request->value.transfer), opArgs)) != RC_OK)
-			return ret_code;
-
-		length += sizeof(req_transfer_t);	
-	}
-	else
-	{
-		if(strlen(opArgs) > 0)
-			return return_error(RC_BAD_REQ_ARGS, "USAGE: Balance checking and Shutdown operations don't take arguments\n");
-	}
-
-	request->value.header.pid = getpid();
-	request->value.header.account_id = account_id;
-	request->value.header.op_delay_ms = op_delay_ms;
-	strcpy(request->value.header.password, password);
-
-	request->type = op_code;
-	request->length = length;
-
-	return RC_OK;
-}*/
+//falta fazer contagem dos 30 segundos. usar um novo thread para isto???
+ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
+    read(reply_fifo_fd, reply, sizeof(tlv_reply_t));
+    return reply->value.header.ret_code;
+}
 
 int main(int argc, char* argv[])
 {
     argument_handler(argc, argv);
-    int server_fifo_fd=openWriteFifo(SERVER_FIFO_PATH);
+    int request_fifo_fd = openRequestFifo();
+    int reply_fifo_fd = openReplyFifo();
+    sendRequest(request, request_fifo_fd);
+    
 
-    //stuff
-
-    close(server_fifo_fd);
+    close(request_fifo_fd);
+    close(reply_fifo_fd);
     return 0;
 }
