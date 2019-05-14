@@ -112,6 +112,11 @@ int argument_handler(int argc, char* argv[])
         exit(1);
     }
     int number_counters = atoi(argv[1]);
+    if (number_counters<0 || number_counters>MAX_BANK_OFFICES)
+    {
+        printf("Number of eletronic counters must be less or equal to %d.\n", MAX_BANK_OFFICES);
+        exit(1);
+    }
     char password[MAX_PASSWORD_LEN+1];
     strcpy(password,argv[2]);
     if (strlen(password)<MIN_PASSWORD_LEN || strlen(password)>MAX_PASSWORD_LEN)
