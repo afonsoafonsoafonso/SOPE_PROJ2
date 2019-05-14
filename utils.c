@@ -6,6 +6,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <sys/stat.h> 
+#include <fcntl.h>
 #include "constants.h"
 
 void produceSha(const char* toEncrypt, char* encrypted)
@@ -67,7 +69,7 @@ void createFifo(char* fifo_name)
     }
 }
 
-int openReadFifo(char* fifo_name/*, int * fd_dummy*/)
+int openReadFifo(char* fifo_name, int * fd_dummy)
 {
     int fd;    
     if ((fd=open(fifo_name, O_RDONLY | O_NONBLOCK)) <0)
@@ -75,14 +77,14 @@ int openReadFifo(char* fifo_name/*, int * fd_dummy*/)
         printf("Can't open FIFO %s\n", fifo_name);
         exit(2);
     }
-    //*fd_dummy=open(fifo_name,O_WRONLY);
+    *fd_dummy=open(fifo_name,O_WRONLY);
     return fd;
 }
 
-int openWriteFifo()
+int openWriteFifo(char* fifo_name)
 {
     int fd;    
-    if ((fd=open(char* fifo_name, fifo_name, O_WRONLY)) <0)
+    if ((fd=open(fifo_name, O_WRONLY | O_APPEND)) <0)
     {
         printf("Can't open FIFO %s\n", fifo_name);
         exit(2);

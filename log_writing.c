@@ -1,5 +1,5 @@
-#include <sys/types.h>
 #include "log_writing.h"
+#include <pthread.h>
 
 int openLog(char* file)
 {
@@ -9,6 +9,7 @@ int openLog(char* file)
         printf("Fail in opening file %s.\n", file);
         exit(3);
     }
+    return fd;
 }
 
 void closeLog(int fd)
@@ -24,14 +25,14 @@ void closeLog(int fd)
 void bankOfficeOpenLogWriting(int id)
 {
     int fd=openLog(SERVER_LOGFILE);
-    logBankOfficeOpen(fd, id, gettid());
+    logBankOfficeOpen(fd, id, pthread_self());
     close(fd);
 }
 
 void bankOfficeCloseLogWriting(int id)
 {
     int fd=openLog(SERVER_LOGFILE);
-    logBankOfficeClose(fd, id, gettid());
+    logBankOfficeClose(fd, id, pthread_self());
     close(fd);
 }
 

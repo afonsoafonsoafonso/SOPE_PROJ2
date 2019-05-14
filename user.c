@@ -8,8 +8,7 @@
 #include <pthread.h> 
 #include <string.h>
 #include "log_writing.h"
-
-static req_value_t req_value;
+#include "utils.h"
 static tlv_request_t request;
 
 req_create_account_t create_account_argument_handler(char* args, int args_size)
@@ -57,7 +56,7 @@ req_create_account_t create_account_argument_handler(char* args, int args_size)
     }
     if (create.balance<MIN_BALANCE || create.balance>MAX_BALANCE)
     {
-        printf("Balances must have a value between %d and %d.\n", MIN_BALANCE, MAX_BALANCE);
+        printf("Balances must have a value between %ld and %ld.\n", MIN_BALANCE, MAX_BALANCE);
         exit(1);
     }
     if (strlen(create.password)<MIN_PASSWORD_LEN || strlen(create.password)>MAX_PASSWORD_LEN)
@@ -108,7 +107,7 @@ req_transfer_t transfer_argument_handler(char* args, int args_size)
     }
     if (transfer.amount<=1 || transfer.amount>MAX_BALANCE)
     {
-        printf("Amounts transfered must have a value between 1 and %d.\n", MAX_BALANCE);
+        printf("Amounts transfered must have a value between 1 and %ld.\n", MAX_BALANCE);
         exit(1);
     }
 
@@ -142,7 +141,7 @@ void argument_handler(int argc, char* argv[])
     //pid
     request.value.header.pid = getpid();
     //account_id
-    if (atoi(argv[1]<0 || atoi(argv[1]) >=MAX_BANK_ACCOUNTS))
+    if (atoi(argv[1])<0 || atoi(argv[1]) >=MAX_BANK_ACCOUNTS)
     {
         printf("Accounts numbers are all between 0 and %d.\n", MAX_BANK_ACCOUNTS);
         exit(1);
@@ -166,17 +165,6 @@ void argument_handler(int argc, char* argv[])
         printf("This operation does not take any kind of arguments. Arguments inserted will be ignored.\n");
 }
 
-int openRequestFifo() {
-    return open(SERVER_FIFO_PATH, O_WRONLY | O_APPEND);
-}
-
-int openReplyFifo() {
-    char reply_fifo_path[16];
-    sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, 5, getpid());
-    mkfifo(reply_fifo_path, 0666);
-    return open(reply_fifo_path, O_RDONLY | O_NONBLOCK);
-}
-
 int sendRequest(tlv_request_t request, int request_fifo_fd) {
     if(write(request_fifo_fd, &request, sizeof(tlv_request_t))==-1) {
         return -1;
@@ -185,6 +173,8 @@ int sendRequest(tlv_request_t request, int request_fifo_fd) {
 }
 
 //falta fazer contagem dos 30 segundos. usar um novo thread para isto???
+//L- acho que faz mais sentido por o user a enviar u sinal para este. assim aqui podes ter um sleep
+//   (se devolver 0 quer dizer que passaram os 30 seg, se devolver outra coisa quer dizer que recebeu o sinal e demorou menos de 30seg)
 ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
     read(reply_fifo_fd, reply, sizeof(tlv_reply_t));
     return reply->value.header.ret_code;
@@ -193,12 +183,17 @@ ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
 int main(int argc, char* argv[])
 {
     argument_handler(argc, argv);
-    int request_fifo_fd = openRequestFifo();
-    int reply_fifo_fd = openReplyFifo();
-    sendRequest(request, request_fifo_fd);
+
+    int fd_dummy;
+    int request_fifo_fd = openWriteFifo(SERVER_FIFO_PATH);
+    char reply_fifo_path[16];
+    sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, 5, getpid());
+    createFifo(reply_fifo_path);
+    int reply_fifo_fd = openReadFifo(reply_fifo_path, &fd_dummy);
     
+    sendRequest(request, request_fifo_fd);
 
     close(request_fifo_fd);
-    close(reply_fifo_fd);
+    closeUnlinkFifo(reply_fifo_path, reply_fifo_fd, fd_dummy);
     return 0;
 }
