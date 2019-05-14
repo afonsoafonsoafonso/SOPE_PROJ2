@@ -64,6 +64,15 @@ ret_code_t transfer(int id_giver, int id_receiver, int amount)
     return RC_OK;
 }
 
+ret_code_t consultBalance(int id_account, uint32_t *balance)
+{
+    if (accounts[id_account].account_id==1)
+        return RC_ID_NOT_FOUND;
+    *balance=accounts[id_account].balance;
+    return RC_OK;
+}
+
+
 int argument_handler(int argc, char* argv[])
 {
     if (argc!=3)
