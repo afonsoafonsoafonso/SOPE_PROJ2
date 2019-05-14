@@ -140,7 +140,7 @@ int argument_handler(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    closed=false
+    closed=false;
     initializeAccountsArray();
     int number_counters = argument_handler(argc, argv);
 
@@ -160,7 +160,7 @@ int main(int argc, char* argv[])
     //esperar que todas as thread terminem de processar todos os pedidos
     /*for (int i = 0; i < 2; i++) {
     pthread_join(tid[i], NULL);*/  
-}
+
 
     closeUnlinkFifo(SERVER_FIFO_PATH, server_fifo_fd, fd_dummy);
 
