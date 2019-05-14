@@ -97,6 +97,13 @@ bool verifyAuthenticity(int id_account, char* password)
     return false;
 }
 
+bool verifyAuthorization(int id_account, int operation_code)
+{
+    if (( operation_code== 0 || operation_code==3) && id_account!=ADMIN_ACCOUNT_ID )
+        return false;
+    return true;
+}
+
 int argument_handler(int argc, char* argv[])
 {
     if (argc!=3)
