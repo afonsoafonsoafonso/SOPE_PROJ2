@@ -19,11 +19,15 @@ void initializeAccountsArray()
         accounts[i].account_id=1;
 }
 
-ret_code_t createAccount(int id, int balance, char* password, int thread_id)
+ret_code_t verifyCreateAccount(int id)
 {
     if (accounts[id].account_id==1)
         return RC_ID_IN_USE;
+    return RC_OK;
+}
 
+void createAccount(int id, int balance, char* password, int thread_id)
+{
     bank_account_t account;
     account.account_id=id;
     account.balance=balance;
@@ -43,11 +47,9 @@ ret_code_t createAccount(int id, int balance, char* password, int thread_id)
     accounts[id]=account;
 
     accountCreationLogWriting(&account, thread_id);
-
-    return RC_OK;
 }
 
-ret_code_t transfer(int id_giver, int id_receiver, int amount)
+ret_code_t verifyTransfer(int id_giver, int id_receiver, int amount)
 {
     if (accounts[id_giver].account_id==1 || accounts[id_receiver].account_id==1)
         return RC_ID_NOT_FOUND;
@@ -57,21 +59,43 @@ ret_code_t transfer(int id_giver, int id_receiver, int amount)
         return RC_NO_FUNDS;
     if (accounts[id_receiver].balance + amount > MAX_BALANCE)
         return RC_TOO_HIGH;
-    
-    accounts[id_giver].balance-=amount;
-    accounts[id_receiver].balance+=amount;
-
     return RC_OK;
 }
 
-ret_code_t consultBalance(int id_account, uint32_t *balance)
+void transfer(int id_giver, int id_receiver, int amount)
+{
+    accounts[id_giver].balance-=amount;
+    accounts[id_receiver].balance+=amount;
+}
+
+ret_code_t verifyAccountExistance(int id_account) //used in consultBalance
 {
     if (accounts[id_account].account_id==1)
         return RC_ID_NOT_FOUND;
-    *balance=accounts[id_account].balance;
     return RC_OK;
 }
 
+uint32_t consultBalance(int id_account)
+{
+    return accounts[id_account].balance;
+}
+
+bool verifyAuthenticity(int id_account, char* password)
+{
+    char salt[SALT_LEN+1];
+    strcpy(salt, accounts[id_account].salt);
+
+    char salt_plus_password[strlen(password)+SALT_LEN+1];
+    strcpy(salt_plus_password, password);
+    strcat(salt_plus_password, salt);
+
+    char hash[HASH_LEN+1];
+    produceSha(salt_plus_password, hash);
+    
+    if (hash == accounts[id_account].hash)
+        return true;
+    return false;
+}
 
 int argument_handler(int argc, char* argv[])
 {
