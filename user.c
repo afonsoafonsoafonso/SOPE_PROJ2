@@ -196,7 +196,7 @@ int main(int argc, char* argv[])
     char reply_fifo_path[16];
     sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, 5, getpid());
     createFifo(reply_fifo_path);
-    int reply_fifo_fd = openReadFifo(reply_fifo_path, &fd_dummy);
+    int reply_fifo_fd = openReadFifo(reply_fifo_path);
     
     sendRequest(request, request_fifo_fd);
 
