@@ -148,7 +148,9 @@ void initializeSems(int counter_number) {
 }
 
 void counter() {
-    // PREENCHER DEPOIS!!!!
+    while(1) {
+        //
+    }
     return;
 }
 
@@ -163,17 +165,15 @@ int main(int argc, char* argv[])
 {
     closed=false;
     initializeAccountsArray();
-    int number_counters = argument_handler(argc, argv);
+    int counter_number = argument_handler(argc, argv);
 
     int fd_dummy;
     createFifo(SERVER_FIFO_PATH);
     server_fifo_fd = openReadFifo(SERVER_FIFO_PATH, &fd_dummy);
 
-    for (int i=0; i<number_counters; i++)
-    {
-        bankOfficeOpenLogWriting(i);
-        //create threads
-    }
+    create_counters(counter_number);
+
+
 
     //ciclo (while !closed) para receber pedidos e colocar na fila de pedidos
     //as threads vao buscar as cenas a fila de pedidos e processam os pedidos

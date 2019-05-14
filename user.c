@@ -176,7 +176,14 @@ int sendRequest(tlv_request_t request, int request_fifo_fd) {
 //L- acho que faz mais sentido por o user a enviar u sinal para este. assim aqui podes ter um sleep
 //   (se devolver 0 quer dizer que passaram os 30 seg, se devolver outra coisa quer dizer que recebeu o sinal e demorou menos de 30seg)
 ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
-    read(reply_fifo_fd, reply, sizeof(tlv_reply_t));
+    //handler do alarm 30 segundos e afins
+    while(1) {
+        if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t)==sizeof(tlv_reply_t))) {
+            //fazer o que há para fazer(caso haja algo mais que dar return ao codigo)
+            return reply->value.header.ret_code;
+        }    
+    }
+    
     return reply->value.header.ret_code;
 }
 
