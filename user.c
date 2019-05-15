@@ -184,18 +184,17 @@ int sendRequest(tlv_request_t request, int request_fifo_fd) {
     return 0;
 }
 
-//falta fazer contagem dos 30 segundos. usar um novo thread para isto???
-//L- acho que faz mais sentido por o user a enviar u sinal para este. assim aqui podes ter um sleep
-//   (se devolver 0 quer dizer que passaram os 30 seg, se devolver outra coisa quer dizer que recebeu o sinal e demorou menos de 30seg)
 ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
     struct sigaction sigalarm;
     sigalarm.sa_handler=sigalarm_handler;
     sigalarm.sa_flags=SA_RESTART;
     sigemptyset(&sigalarm.sa_mask);
-    if (sigaction(SIGALRM,&sigalarm,NULL) < 0)   {
+    if (sigaction(SIGALRM,&sigalarm,NULL) < 0)   
+    {
         fprintf(stderr,"Unable to install SIGALRM handler\n");     
-        exit(1);   }  
-        alarm(30); 
+        exit(1);   
+    }  
+    alarm(30); 
     while(!timeout) {
         if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t))==sizeof(tlv_reply_t)) {//falta o log
             //fazer o que há para fazer(caso haja algo mais que dar return ao codigo)
@@ -203,8 +202,8 @@ ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
             return reply->value.header.ret_code;
         }    
     }
-    
-    return 0;//reply->value.header.ret_code;
+
+    return RC_SRV_TIMEOUT;
 }
 
 int main(int argc, char* argv[])
