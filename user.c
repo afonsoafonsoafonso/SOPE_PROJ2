@@ -9,7 +9,19 @@
 #include <string.h>
 #include "log_writing.h"
 #include "utils.h"
+#include <signal.h>
+#include <unistd.h> 
+#include <stdlib.h> 
+#include <time.h>
+#include <stdio.h> 
 static tlv_request_t request;
+bool timeout = false;
+
+void sigalarm_handler(int signo) {  
+    printf("In SIGALRM handler ...\n");
+    timeout=true;
+    //print_logf
+} 
 
 req_create_account_t create_account_argument_handler(char* args, int args_size)
 {
@@ -176,15 +188,23 @@ int sendRequest(tlv_request_t request, int request_fifo_fd) {
 //L- acho que faz mais sentido por o user a enviar u sinal para este. assim aqui podes ter um sleep
 //   (se devolver 0 quer dizer que passaram os 30 seg, se devolver outra coisa quer dizer que recebeu o sinal e demorou menos de 30seg)
 ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
-    //handler do alarm 30 segundos e afins
-    while(1) {
-        if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t)==sizeof(tlv_reply_t))) {
+    struct sigaction sigalarm;
+    sigalarm.sa_handler=sigalarm_handler;
+    sigalarm.sa_flags=SA_RESTART;
+    sigemptyset(&sigalarm.sa_mask);
+    if (sigaction(SIGALRM,&sigalarm,NULL) < 0)   {
+        fprintf(stderr,"Unable to install SIGALRM handler\n");     
+        exit(1);   }  
+    alarm(30); 
+    while(!timeout) {
+        if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t)==sizeof(tlv_reply_t))) {//falta o log
             //fazer o que há para fazer(caso haja algo mais que dar return ao codigo)
+            alarm(0);//para os alarmes pendentes
             return reply->value.header.ret_code;
         }    
     }
     
-    return reply->value.header.ret_code;
+    return 0;//reply->value.header.ret_code;
 }
 
 int main(int argc, char* argv[])

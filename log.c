@@ -141,7 +141,7 @@ int logSyncDelay(int fd, int id, int sid, uint32_t delay_ms) {
 }
 
 /*
- * Ancillary functions
+ * Auxiliary functions
  */
 
 static int atomicPrintf(int fd, const char *format, ...) {
