@@ -167,11 +167,14 @@ void initializeSems(int counter_number)
     sem_init(&full,0,0);
 }
 
-void op_balance_handler(tlv_reply_t *reply, int counter_id)
+void op_balance_handler(tlv_reply_t *reply, int counter_id, tlv_request_t request)
 {
     int account_id=reply->value.header.account_id;
     pthread_mutex_lock(&(accounts[account_id].mutex));
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, account_id);
+
+    usleep(request.value.header.op_delay_ms*1000);
+    syncDelayLogWriting(counter_id, account_id, request.value.header.op_delay_ms);
 
     reply->value.header.ret_code = verifyAccountExistance(account_id);
     if (reply->value.header.ret_code == RC_OK)
@@ -192,15 +195,18 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
     pthread_mutex_lock(&(accounts[receiver].mutex));
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, receiver);
 
+    usleep(request.value.header.op_delay_ms*1000);
+    syncDelayLogWriting(counter_id, sender, request.value.header.op_delay_ms);
+
     reply->value.header.ret_code = verifyTransfer(sender, receiver, amount);
     if(reply->value.header.ret_code==RC_OK)
         transfer(sender,receiver,amount);
     reply->value.transfer.balance = accounts[sender].balance;
 
-    pthread_mutex_unlock(&(accounts[sender].mutex));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, sender);
     pthread_mutex_lock(&(accounts[receiver].mutex));
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, receiver);
+    pthread_mutex_unlock(&(accounts[sender].mutex));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, sender);
 }
 
 // não confirmei assim beeeem mas acho que o reply n precisa
@@ -215,6 +221,9 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
     pthread_mutex_lock(&(accounts[account_id].mutex));
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, account_id);
 
+    usleep(request.value.header.op_delay_ms*1000);
+    syncDelayLogWriting(counter_id, account_id, request.value.header.op_delay_ms);
+
     reply->value.header.ret_code = check_account_creation(account_id, balance, passw);
     if (reply->value.header.ret_code!=RC_OK)
         return;
@@ -224,10 +233,14 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, account_id);
 }
 
-void op_close_bank_handler(tlv_reply_t *reply, int counter_id)
+void op_close_bank_handler(tlv_reply_t *reply, int counter_id , tlv_request_t request)
 {
     reply->value.header.ret_code=RC_OK;
     reply->value.shutdown.active_offices=0; // não sei que valor se poe aqui
+
+    usleep(request.value.header.op_delay_ms*1000);
+    delayLogWriting(counter_id, request.value.header.op_delay_ms);
+
     bank_shutdown();
 }
 
@@ -270,7 +283,7 @@ void requestHandler(tlv_request_t request, int counter_id) {
     else {
         switch(request.type) {
             case OP_BALANCE:
-                op_balance_handler(&reply, counter_id);
+                op_balance_handler(&reply, counter_id, request);
                 break;
             case OP_TRANSFER:
                 op_transfer_handler(&reply,request, counter_id);
@@ -279,7 +292,7 @@ void requestHandler(tlv_request_t request, int counter_id) {
                 op_create_account_handler(&reply,request, counter_id);
                 break;
             case OP_SHUTDOWN: 
-                op_close_bank_handler(&reply, counter_id);
+                op_close_bank_handler(&reply, counter_id, request);
                 break;
             default:
                 break;
