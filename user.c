@@ -178,7 +178,7 @@ int sendRequest(tlv_request_t request, int request_fifo_fd) {
 ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
     //handler do alarm 30 segundos e afins
     while(1) {
-        if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t)==sizeof(tlv_reply_t))) {
+        if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t))==sizeof(tlv_reply_t)) {
             //fazer o que há para fazer(caso haja algo mais que dar return ao codigo)
             return reply->value.header.ret_code;
         }    
