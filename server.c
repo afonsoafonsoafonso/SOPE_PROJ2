@@ -157,40 +157,56 @@ int argument_handler(int argc, char* argv[])
 
 void initializeSems(int counter_number)
 {
+    int sem_value;
+    sem_getvalue(&empty, &sem_value)
+    syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, sem_value);
     sem_init(&empty,0,counter_number);
+
+    int sem_value;
+    sem_getvalue(&full, &sem_value)
+    syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, sem_value);
     sem_init(&full,0,0);
-    return;
 }
 
-void op_balance_handler(tlv_reply_t *reply)
+void op_balance_handler(tlv_reply_t *reply, int counter_id)
 {
     int account_id=reply->value.header.account_id
     pthread_mutex_lock(&(accounts[account_id].mutex));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, account_id);
+
     reply->value.header.ret_code = verifyAccountExistance(account_id);
     if (reply->value.header.ret_code == RC_OK)
         reply->value.balance.balance = consultBalance(account_id);
+
     pthread_mutex_unlock(&(accounts[account_id].mutex));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, account_id);
 }
 
-void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request)
+void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_id)
 {
     int sender = request.value.header.account_id;
     int receiver = request.value.transfer.account_id;
     int amount = request.value.transfer.amount;
 
     pthread_mutex_lock(&(accounts[sender].mutex));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, sender);
     pthread_mutex_lock(&(accounts[receiver].mutex));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, receiver);
+
     reply->value.header.ret_code = verifyTransfer(sender, receiver, amount);
     if(reply->value.header.ret_code==RC_OK)
         transfer(sender,receiver,amount);
     reply->value.transfer.balance = accounts[sender].balance;
+
     pthread_mutex_unlock(&(accounts[sender].mutex));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, sender);
     pthread_mutex_lock(&(accounts[receiver].mutex));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, receiver);
 }
 
 // não confirmei assim beeeem mas acho que o reply n precisa
 // de mais argumentos. confirmar melhor mais tarde
-void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request)
+void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int counter_id)
 {
     int account_id=reply->value.header.account_id
     int balance = request.value.create.balance;
@@ -198,15 +214,18 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request)
     strcpy(passw, request.value.create.password);
 
     pthread_mutex_lock(&(accounts[account_id].mutex));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, account_id);
+
     reply->value.header.ret_code = check_account_creation(account_id, balance, passw);
     if (reply->value.header.ret_code!=RC_OK)
         return;
-
     createAccount(account_id, balance, passw, (int)pthread_self());
+
     pthread_mutex_unlock(&(accounts[account_id].mutex));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, account_id);
 }
 
-void op_close_bank_handler(tlv_reply_t *reply)
+void op_close_bank_handler(tlv_reply_t *reply, int counter_id)
 {
     reply->value.header.ret_code=RC_OK;
     reply->value.shutdown.activeoffices=0; // não sei que valor se poe aqui
@@ -235,7 +254,7 @@ void fillReply(tlv_reply_t *reply, tlv_request_t request)
     }
 }
 
-void requestHandler(tlv_request_t request) {
+void requestHandler(tlv_request_t request, int counter_id) {
     tlv_reply_t reply;
     fillReply(&reply, request)
 
@@ -251,16 +270,16 @@ void requestHandler(tlv_request_t request) {
     else {
         switch(request.type) {
             case OP_BALANCE:
-                op_balance_handler(&reply);
+                op_balance_handler(&reply, counter_id);
                 break;
             case OP_TRANSFER:
-                op_transfer_handler(&reply,request);
+                op_transfer_handler(&reply,request, counter_id);
                 break;
             case OP_CREATE_ACCOUNT:
-                op_create_account_handler(&reply,request);
+                op_create_account_handler(&reply,request, counter_id);
                 break;
             case OP_SHUTDOWN: 
-                op_close_bank_handler(&reply);
+                op_close_bank_handler(&reply, counter_id);
                 break;
             default:
                 break;
@@ -273,7 +292,7 @@ void requestHandler(tlv_request_t request) {
     int reply_fifo_fd = openReadFifo(reply_fifo_path);
     //valta verificar erros no write (perror???)
     write(reply_fifo_fd, &reply, sizeof(reply));
-
+    replySentLogWriting(&reply, counter_id);
     close(reply_fifo_fd);
 }
 
@@ -284,16 +303,23 @@ void *counter(void *threadnum) {
     int sem_value;
     sem_getvalue(&full, &sem_value);
     while(!closed && !sem_value) {
+        sem_getvalue(&full, &sem_value)
+        syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, sem_value);
         sem_wait(&full);
-        sem_getvalue(&full, &sem_value);
 
         pthread_mutex_lock(&mutex);
+        syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, 0);
         tlv_request_t request;
         queue_remove(&request);
+        requestReceivedLogWriting(&request, counter_id);
         pthread_mutex_unlock(&mutex);
+        syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, request.value.header.account_id);
 
-        requestHandler(request);
+        requestHandler(request, counter_id);
+        
         sem_post(&empty);
+        sem_getvalue(&empty, &sem_value)
+        syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, sem_value);
     }
     bankOfficeCloseLogWriting(counter_id);
     return NULL;
@@ -301,7 +327,7 @@ void *counter(void *threadnum) {
 
 void create_counters(int counter_number, int aux[]) {
     for(int i=0; i<counter_number; i++) {
-        aux[i]=i;
+        aux[i]=i+1;
         pthread_create(&counters[i], NULL, counter, (void *)&aux[i]);
     }
     return;
@@ -327,8 +353,16 @@ int main(int argc, char* argv[])
     while(!closed)
     {
         if(read(server_fifo_fd, &request, sizeof(tlv_request_t))==sizeof(tlv_request_t)){
-            printf("teste 7\n");             
+            printf("teste 7\n");  
+                
+            pthread_mutex_lock(&mutex);
+            syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_PRODUCER, 0);
+            
             queue_insert(request);
+            requestReceivedLogWriting(&request, 0);
+
+            pthread_mutex_unlock(&mutex);
+            syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_PRODUCER, request.value.header.account_id);
         }
     }
     printf("teste 8\n");

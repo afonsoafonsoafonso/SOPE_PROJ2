@@ -181,6 +181,7 @@ int sendRequest(tlv_request_t request, int request_fifo_fd) {
     if(write(request_fifo_fd, &request, sizeof(tlv_request_t))==-1) {
         return -1;
     }
+    requestSentLogWriting(&request, getpid());
     return 0;
 }
 
@@ -199,6 +200,7 @@ ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
         if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t))==sizeof(tlv_reply_t)) {//falta o log
             //fazer o que há para fazer(caso haja algo mais que dar return ao codigo)
             alarm(0);//para os alarmes pendentes
+            replyReceivedLogWriting(&reply, getpid());
             return reply->value.header.ret_code;
         }    
     }
