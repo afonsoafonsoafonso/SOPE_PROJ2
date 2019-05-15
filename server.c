@@ -23,8 +23,7 @@ extern tlv_request_t request_queue[MAX_REQUESTS];
 
 void initializeAccountsArray()
 {
-    for (int i=0; i<MAX_BANK_ACCOUNTS; i++)
-    {
+    for (int i=0; i<MAX_BANK_ACCOUNTS; i++){
         pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
         accounts[i].account_id=1;
         accounts[i].mutex = mut;
@@ -298,27 +297,33 @@ void create_counters(int counter_number, int aux[]) {
 int main(int argc, char* argv[])
 {
     closed=false;
+    printf("teste 1\n");
     initializeAccountsArray();
+    printf("teste 2\n");
     int counter_number = argument_handler(argc, argv);
+    printf("teste 3\n");
     int aux[counter_number];
-
+    printf("teste 4\n");
     createFifo(SERVER_FIFO_PATH);
     printf("ola\n"); //por algum motivo sem isto dá falha de segmentação
     server_fifo_fd = openReadFifo(SERVER_FIFO_PATH);
+    printf("teste 5\n");
     create_counters(counter_number, aux);
-
+    printf("teste 6\n");
     tlv_request_t request;
     while(!closed)
     {
-        if(read(server_fifo_fd, &request, sizeof(tlv_request_t))==sizeof(tlv_request_t))
-             queue_insert(request);
+        if(read(server_fifo_fd, &request, sizeof(tlv_request_t))==sizeof(tlv_request_t)){
+            printf("teste 7\n");             
+            queue_insert(request);
+        }
     }
-
+    printf("teste 8\n");
     //esperar que todas as thread terminem de processar todos os pedidos
     for (int i = 0; i < 2; i++)
         pthread_join(counters[i], NULL);
-
+    printf("teste 9\n");
     closeUnlinkFifo(SERVER_FIFO_PATH, server_fifo_fd);
-
+    printf("teste 10\n");
     return 0;
 }

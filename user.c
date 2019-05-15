@@ -195,7 +195,7 @@ ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
     if (sigaction(SIGALRM,&sigalarm,NULL) < 0)   {
         fprintf(stderr,"Unable to install SIGALRM handler\n");     
         exit(1);   }  
-    alarm(30); 
+        alarm(30); 
     while(!timeout) {
         if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t))==sizeof(tlv_reply_t)) {//falta o log
             //fazer o que há para fazer(caso haja algo mais que dar return ao codigo)
@@ -210,16 +210,22 @@ ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
 int main(int argc, char* argv[])
 {
     argument_handler(argc, argv);
-
+    printf("teste 1\n");
     int request_fifo_fd = openWriteFifo(SERVER_FIFO_PATH);
+    printf("teste 2\n");
     char reply_fifo_path[16];
+    printf("teste 3\n");
     sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, 5, getpid());
+    printf("teste 4\n");
     createFifo(reply_fifo_path);
+    printf("teste 5\n");
     int reply_fifo_fd = openReadFifo(reply_fifo_path);
-    
+    printf("teste 6\n");
     sendRequest(request, request_fifo_fd);
-
+    printf("teste 7\n");
     close(request_fifo_fd);
+    printf("teste 8\n");
     closeUnlinkFifo(reply_fifo_path, reply_fifo_fd);
+    printf("teste 9\n");
     return 0;
 }

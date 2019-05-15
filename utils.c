@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include "constants.h"
+#include <time.h>
 
 void produceSha(const char* toEncrypt, char* encrypted)
 {
@@ -61,6 +62,8 @@ void produceSha(const char* toEncrypt, char* encrypted)
 void produceSalt(char* salt)
 {
     strcpy(salt, "salt");
+    sprintf(salt,"%ld",clock());
+    sprintf(salt,"%d",getpid());
 }
 
 void createFifo(char* fifo_name)
