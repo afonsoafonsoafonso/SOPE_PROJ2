@@ -3,7 +3,6 @@
 #include <limits.h>
 #include "types.h"
 
-extern tlv_request_t* request_queue;
 extern unsigned size;
 extern unsigned rear;
 extern unsigned front;

@@ -1,9 +1,8 @@
 #pragma once
 
 #include <stdint.h>
-
 #include <unistd.h>
-
+#include <pthread.h>
 #include "constants.h"
 
 typedef enum op_type {
@@ -58,6 +57,7 @@ typedef struct bank_account {
   char hash[HASH_LEN + 1];
   char salt[SALT_LEN + 1];
   uint32_t balance;
+  pthread_mutex_t mutex;
 } bank_account_t;
 
 //

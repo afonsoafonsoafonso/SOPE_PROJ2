@@ -19,11 +19,15 @@ sem_t full, empty;
 static bank_account_t accounts[MAX_BANK_ACCOUNTS];
 static pthread_t counters[MAX_BANK_OFFICES];
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+extern tlv_request_t request_queue[MAX_REQUESTS];
 
 void initializeAccountsArray()
 {
     for (int i=0; i<MAX_BANK_ACCOUNTS; i++)
+    {
         accounts[i].account_id=1;
+        accounts[i].mutex = PTHREAD_MUTEX_INITIALIZER;
+    }
 }
 
 ret_code_t check_account_creation(int id, int balance, char password[]) {
@@ -163,28 +167,35 @@ void op_balance_handler(tlv_reply_t *reply, tlv_request_t request) {
     int account_id=request.value.header.account_id;
     reply->value.header.account_id = account_id;
     reply->type = OP_BALANCE;
+    //lenght calculations
+    reply->length = sizeof(rep_header_t) + sizeof(rep_balance_t);
+
+    pthread_mutex_lock(&(accounts[account_id].mutex));
     reply->value.header.ret_code = verifyAccountExistance(account_id);
     if (reply->value.header.ret_code == RC_OK)
         reply->value.balance.balance = consultBalance(account_id);
-    //lenght calculations
-    reply->length = sizeof(rep_header_t) + sizeof(rep_balance_t);
+    pthread_mutex_unlock(&(accounts[account_id].mutex));
 }
 
 void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request) {
     int sender = request.value.header.account_id;
     int receiver = request.value.transfer.account_id;
     int amount = request.value.transfer.amount;
+    //lenght calculations
+    reply->length = sizeof(rep_header_t) + sizeof(rep_transfer_t);
 
     reply->value.header.account_id = sender;
     reply->type = OP_TRANSFER;
 
+    pthread_mutex_lock(&(accounts[sender].mutex));
+    pthread_mutex_lock(&(accounts[receiver].mutex));
     reply->value.header.ret_code = verifyTransfer(sender, receiver, amount);
     if(reply->value.header.ret_code==RC_OK)
         transfer(sender,receiver,amount);
 
     reply->value.transfer.balance = accounts[sender].balance;
-    //lenght calculations
-    reply->length = sizeof(rep_header_t) + sizeof(rep_transfer_t);
+    pthread_mutex_unlock(&(accounts[sender].mutex));
+    pthread_mutex_lock(&(accounts[receiver].mutex));
 }
 
 // não confirmei assim beeeem mas acho que o reply n precisa
@@ -200,11 +211,13 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request) {
     char passw[MAX_PASSWORD_LEN];
     strcpy(passw, request.value.create.password);
 
+    pthread_mutex_lock(&(accounts[account_id].mutex));
     reply->value.header.ret_code = check_account_creation(account_id, balance, passw);
     if (reply->value.header.ret_code!=RC_OK)
         return;
 
     createAccount(account_id, balance, passw, (int)pthread_self());
+    pthread_mutex_unlock(&(accounts[account_id].mutex));
 }
 
 void requestHandler(tlv_request_t request) {
@@ -255,12 +268,12 @@ void *counter(void *threadnum) {
     //falta o sem_getvalue que pelos vistos é preciso para os logs (???)
     int counter_id=*(int *) threadnum;
     bankOfficeOpenLogWriting(counter_id);
-    printf("%d\n", counter_id);
     int sem_value;
     sem_getvalue(&full, &sem_value);
     while(!closed && !sem_value) {
         sem_wait(&full);
         sem_getvalue(&full, &sem_value);
+
         pthread_mutex_lock(&mutex);
         tlv_request_t request;
         queue_remove(&request);
@@ -268,7 +281,6 @@ void *counter(void *threadnum) {
 
         requestHandler(request);
         sem_post(&empty);
-        
     }
     bankOfficeCloseLogWriting(counter_id);
     return NULL;
@@ -290,17 +302,20 @@ int main(int argc, char* argv[])
     int aux[counter_number];
 
     createFifo(SERVER_FIFO_PATH);
-    printf("ola\n");
+    printf("ola\n"); //por algum motivo sem isto dá falha de segmentação
     server_fifo_fd = openReadFifo(SERVER_FIFO_PATH);
     create_counters(counter_number, aux);
 
-    //ciclo (while !closed) para receber pedidos e colocar na fila de pedidos
-    //as threads vao buscar as cenas a fila de pedidos e processam os pedidos
+    tlv_request_t request;
+    while(!closed)
+    {
+        if(read(server_fifo_fd, &request, sizeof(tlv_request_t))==sizeof(tlv_request_t))
+             queue_insert(request);
+    }
 
     //esperar que todas as thread terminem de processar todos os pedidos
     for (int i = 0; i < 2; i++)
         pthread_join(counters[i], NULL);
-
 
     closeUnlinkFifo(SERVER_FIFO_PATH, server_fifo_fd);
 

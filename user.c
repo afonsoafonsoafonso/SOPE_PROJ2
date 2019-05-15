@@ -197,7 +197,7 @@ ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
         exit(1);   }  
     alarm(30); 
     while(!timeout) {
-        if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t)==sizeof(tlv_reply_t))) {//falta o log
+        if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t))==sizeof(tlv_reply_t)) {//falta o log
             //fazer o que há para fazer(caso haja algo mais que dar return ao codigo)
             alarm(0);//para os alarmes pendentes
             return reply->value.header.ret_code;

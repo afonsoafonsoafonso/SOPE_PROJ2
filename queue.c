@@ -3,8 +3,6 @@
 #include <limits.h>
 #include "types.h"
 
-#define MAX_REQUESTS 100
-
 tlv_request_t request_queue[MAX_REQUESTS];
 unsigned size = 0;
 unsigned rear = MAX_REQUESTS - 1;
