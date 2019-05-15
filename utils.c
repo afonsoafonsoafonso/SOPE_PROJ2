@@ -61,9 +61,15 @@ void produceSha(const char* toEncrypt, char* encrypted)
 // ----------------------------- TO COMPLETE -----------------------------------
 void produceSalt(char* salt)
 {
+    char* temp;
     strcpy(salt, "salt");
-    sprintf(salt,"%ld",clock());
-    sprintf(salt,"%d",getpid());
+    sprintf(temp,"%ld",clock());
+    strcat(salt, temp);
+    sprintf(temp,"%d",getpid());
+    strcat(salt, temp);
+    while (strlen(salt)<64){
+        sprintf(temp,"%d",(rand() % 10));
+        strcat(salt, temp);}
 }
 
 void createFifo(char* fifo_name)
