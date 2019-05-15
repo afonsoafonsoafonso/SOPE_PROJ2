@@ -33,11 +33,11 @@ ret_code_t check_account_creation(int id, int balance, char password[]) {
 
     if (strlen(password)<MIN_PASSWORD_LEN || strlen(password)>MAX_PASSWORD_LEN) {
         return RC_OTHER;
-    }
+    }//-> desnecessário. já é verificado no programa user
 
     if (balance < MIN_BALANCE || balance > MAX_BALANCE) {
         return RC_OTHER;
-    }
+    } //-> desnecessário. já é verificado no programa user
 
     return RC_OK;
 }
@@ -61,7 +61,6 @@ void createAccount(int id, int balance, char* password, int thread_id)
     strcpy(account.hash, hash);
 
     accounts[id]=account;
-
     accountCreationLogWriting(&account, thread_id);
 }
 
@@ -96,7 +95,7 @@ uint32_t consultBalance(int id_account)
     return accounts[id_account].balance;
 }
 
-bool checkLogin(int id_account, char password)
+bool checkLogin(int id_account, char* password)
 {
     char salt[SALT_LEN+1];
     strcpy(salt, accounts[id_account].salt);
@@ -113,11 +112,11 @@ bool checkLogin(int id_account, char password)
     return false;
 }
 
-ret_code_t check_permissions(int id_account, int operation_code)
+bool check_permissions(int id_account, int operation_code)
 {
-    if (( operation_code== 0 || operation_code==3) && id_account!=ADMIN_ACCOUNT_ID )
-        return RC_OP_NALLOW;
-    return RC_OK;
+    if (( operation_code== OP_CREATE_ACCOUNT || operation_code==OP_SHUTDOWN) && id_account!=ADMIN_ACCOUNT_ID )
+        return false;
+    return true;
 }
 
 //completar mais tarde
@@ -161,13 +160,14 @@ void initializeSems(int counter_number) {
 }
 
 void op_balance_handler(tlv_reply_t *reply, tlv_request_t request) {
-    reply->value.header.account_id = request.value.header.account_id;
+    int account_id=request.value.header.account_id;
+    reply->value.header.account_id = account_id;
     reply->type = OP_BALANCE;
-    reply->value.balance.balance = accounts[request.value.header.account_id].balance;
-    reply->value.header.ret_code = RC_OK;
+    reply->value.header.ret_code = verifyAccountExistance(account_id);
+    if (reply->value.header.ret_code == RC_OK)
+        reply->value.balance.balance = consultBalance(account_id);
     //lenght calculations
     reply->length = sizeof(rep_header_t) + sizeof(rep_balance_t);
-    return;
 }
 
 void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request) {
@@ -175,57 +175,52 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request) {
     int receiver = request.value.transfer.account_id;
     int amount = request.value.transfer.amount;
 
-    reply->value.header.account_id = request.value.header.account_id;
+    reply->value.header.account_id = sender;
     reply->type = OP_TRANSFER;
 
     reply->value.header.ret_code = verifyTransfer(sender, receiver, amount);
-    if(reply->value.header.ret_code!=RC_OK) return;
-    else transfer(sender,receiver,amount);
+    if(reply->value.header.ret_code==RC_OK)
+        transfer(sender,receiver,amount);
 
-    reply->value.transfer.balance = accounts[request.value.header.account_id].balance;
+    reply->value.transfer.balance = accounts[sender].balance;
     //lenght calculations
     reply->length = sizeof(rep_header_t) + sizeof(rep_transfer_t);
-
-    return;
 }
 
 // não confirmei assim beeeem mas acho que o reply n precisa
 // de mais argumentos. confirmar melhor mais tarde
 void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request) {
-    reply->value.header.account_id = request.value.header.account_id;
+    int account_id = request.value.header.account_id;
+    reply->value.header.account_id = account_id;
     reply->type = OP_CREATE_ACCOUNT;
-    //os testes estão nesta ordem especifica devido à ordem pedida
-    //no caso de houverem mais erros
-    reply->value.header.ret_code = check_permissions(request.value.header.account_id)!=RC_OK);
-    if(reply->value.header.ret_code!=RC_OK) return;
+    //lenght calculations
+    reply->length = sizeof(rep_header_t);
 
-    int id = request.value.create.account_id;
     int balance = request.value.create.balance;
-    char passw[MAX_PASSWORD_LEN] = request.value.create.password;
+    char passw[MAX_PASSWORD_LEN];
+    strcpy(passw, request.value.create.password);
 
-    reply->value.header.ret_code = check_account_creation(id, balance, passw);
-    if(reply->value.header.ret_code!=RC_OK) return;
+    reply->value.header.ret_code = check_account_creation(account_id, balance, passw);
+    if (reply->value.header.ret_code!=RC_OK)
+        return;
 
-    createAccount(id, balance, passw, (int)pthread_self());
-
-    return;
+    createAccount(account_id, balance, passw, (int)pthread_self());
 }
 
-void sendReply(tlv_request_t request) {
+void requestHandler(tlv_request_t request) {
     tlv_reply_t reply;
 
-    reply.value.header.account_id = request.value.header.account_id;
-    pid_t pid = request.value.header.pid;
     uint32_t account_id = request.value.header.account_id;
+    reply.value.header.account_id = account_id;
 
-    //checking if account exists
-    if(verifyAccountExistance(request.value.header.account_id)!=RC_OK) {
-        reply.value.header.ret_code = RC_ID_NOT_FOUND;
-    }
     //checking if password is correct
-    else if(!checkLogin(request.value.header.account_id,request.value.header.password)) {
+    if(!checkLogin(account_id,request.value.header.password))
         reply.value.header.ret_code = RC_LOGIN_FAIL;
-    }
+
+    //checking permissions
+    else if (!check_permissions(account_id, request.type))
+        reply.value.header.ret_code = RC_OP_NALLOW;
+
     //making operation specific checks and operations
     else {
         switch(request.type) {
@@ -241,8 +236,11 @@ void sendReply(tlv_request_t request) {
             case OP_SHUTDOWN: 
                 //completar mais tarde(func n esta feita)
                 break;
+            default:
+                break;
         }
     }
+
     //making reply fifo
     char reply_fifo_path[16];
     sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, WIDTH_ID, request.value.header.pid);
@@ -253,31 +251,32 @@ void sendReply(tlv_request_t request) {
     close(reply_fifo_fd);
 }
 
-void counter() {
-    //falta o sem_getvalue que pelos vistos é preciso
-    //para os logs (???)
-    //Dúvida: basta dar o lock do mutex quando se vai retirar
-    //algo da queue ou também enquanto se envia a resposta?
-    //primeiro apenas, digo eu
-    while(1) {
+void *counter(void *threadnum) {
+    //falta o sem_getvalue que pelos vistos é preciso para os logs (???)
+    int counter_id=*(int *) threadnum;
+    bankOfficeOpenLogWriting(counter_id);
+    int sem_value;
+    sem_getvalue(&full, &sem_value);
+    while(!closed && !sem_value) {
         sem_wait(&full);
+        sem_getvalue(&full, &sem_value);
         pthread_mutex_lock(&mutex);
-
         tlv_request_t request;
         queue_remove(&request);
-        //sendReply()
-
-
         pthread_mutex_unlock(&mutex);
+
+        requestHandler(request);
         sem_post(&empty);
         
     }
-    return;
+    return NULL;
 }
 
-void create_counters(counter_number) {
+void create_counters(int counter_number) {
+    int aux[counter_number];
     for(int i=0; i<counter_number; i++) {
-        pthread_create(&counters[i], NULL, counter, NULL);
+        aux[i]=i;
+        pthread_create(&counters[i], NULL, counter, (void *)&aux[i]);
     }
     return;
 }

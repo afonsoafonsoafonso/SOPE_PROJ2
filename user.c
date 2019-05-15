@@ -191,7 +191,6 @@ int main(int argc, char* argv[])
 {
     argument_handler(argc, argv);
 
-    int fd_dummy;
     int request_fifo_fd = openWriteFifo(SERVER_FIFO_PATH);
     char reply_fifo_path[16];
     sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, 5, getpid());
@@ -201,6 +200,6 @@ int main(int argc, char* argv[])
     sendRequest(request, request_fifo_fd);
 
     close(request_fifo_fd);
-    closeUnlinkFifo(reply_fifo_path, reply_fifo_fd, fd_dummy);
+    closeUnlinkFifo(reply_fifo_path, reply_fifo_fd);
     return 0;
 }

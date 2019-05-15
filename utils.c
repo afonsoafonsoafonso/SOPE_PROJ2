@@ -50,7 +50,9 @@ void produceSha(const char* toEncrypt, char* encrypted)
         exit(50);
     }
     close(fd[1]);
-    read(fd[0], encrypted, HASH_LEN+1);
+    int n;
+    n=read(fd[0], encrypted, HASH_LEN+1);
+    encrypted[n]='\0';
     wait(NULL);
 }
 
@@ -69,7 +71,7 @@ void createFifo(char* fifo_name)
     }
 }
 
-int openReadFifo(char* fifo_name)
+int openReadFifo(char* fifo_name, int * fd_dummy)
 {
     int fd;    
     if ((fd=open(fifo_name, O_RDONLY | O_NONBLOCK)) <0)
@@ -77,6 +79,7 @@ int openReadFifo(char* fifo_name)
         printf("Can't open FIFO %s\n", fifo_name);
         exit(2);
     }
+    *fd_dummy=open(fifo_name,O_WRONLY);
     return fd;
 }
 
@@ -91,9 +94,10 @@ int openWriteFifo(char* fifo_name)
     return fd;
 }
 
-void closeUnlinkFifo(char* fifo_name, int fd)
+void closeUnlinkFifo(char* fifo_name, int fd, int fd_dummy)
 {
     close(fd);
+    close(fd_dummy);
     if (unlink(fifo_name)<0)
     {
         printf("Error when destroying FIFO %s\n", fifo_name);
