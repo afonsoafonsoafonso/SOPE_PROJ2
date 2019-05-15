@@ -158,19 +158,18 @@ int argument_handler(int argc, char* argv[])
 void initializeSems(int counter_number)
 {
     int sem_value;
-    sem_getvalue(&empty, &sem_value)
+    sem_getvalue(&empty, &sem_value);
     syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, sem_value);
     sem_init(&empty,0,counter_number);
 
-    int sem_value;
-    sem_getvalue(&full, &sem_value)
+    sem_getvalue(&full, &sem_value);
     syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, sem_value);
     sem_init(&full,0,0);
 }
 
 void op_balance_handler(tlv_reply_t *reply, int counter_id)
 {
-    int account_id=reply->value.header.account_id
+    int account_id=reply->value.header.account_id;
     pthread_mutex_lock(&(accounts[account_id].mutex));
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, account_id);
 
@@ -208,7 +207,7 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
 // de mais argumentos. confirmar melhor mais tarde
 void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int counter_id)
 {
-    int account_id=reply->value.header.account_id
+    int account_id=reply->value.header.account_id;
     int balance = request.value.create.balance;
     char passw[MAX_PASSWORD_LEN];
     strcpy(passw, request.value.create.password);
@@ -228,7 +227,7 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
 void op_close_bank_handler(tlv_reply_t *reply, int counter_id)
 {
     reply->value.header.ret_code=RC_OK;
-    reply->value.shutdown.activeoffices=0; // não sei que valor se poe aqui
+    reply->value.shutdown.active_offices=0; // não sei que valor se poe aqui
     bank_shutdown();
 }
 
@@ -256,8 +255,9 @@ void fillReply(tlv_reply_t *reply, tlv_request_t request)
 
 void requestHandler(tlv_request_t request, int counter_id) {
     tlv_reply_t reply;
-    fillReply(&reply, request)
+    fillReply(&reply, request);
 
+    int account_id=request.value.header.account_id;
     //checking if password is correct
     if(!checkLogin(account_id,request.value.header.password))
         reply.value.header.ret_code = RC_LOGIN_FAIL;
@@ -303,7 +303,7 @@ void *counter(void *threadnum) {
     int sem_value;
     sem_getvalue(&full, &sem_value);
     while(!closed && !sem_value) {
-        sem_getvalue(&full, &sem_value)
+        sem_getvalue(&full, &sem_value);
         syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, sem_value);
         sem_wait(&full);
 
@@ -316,9 +316,9 @@ void *counter(void *threadnum) {
         syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, request.value.header.account_id);
 
         requestHandler(request, counter_id);
-        
+
         sem_post(&empty);
-        sem_getvalue(&empty, &sem_value)
+        sem_getvalue(&empty, &sem_value);
         syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, sem_value);
     }
     bankOfficeCloseLogWriting(counter_id);
@@ -356,13 +356,13 @@ int main(int argc, char* argv[])
             printf("teste 7\n");  
                 
             pthread_mutex_lock(&mutex);
-            syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_PRODUCER, 0);
+            syncMechLogWriting(0, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_PRODUCER, 0);
             
             queue_insert(request);
             requestReceivedLogWriting(&request, 0);
 
             pthread_mutex_unlock(&mutex);
-            syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_PRODUCER, request.value.header.account_id);
+            syncMechLogWriting(0, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_PRODUCER, request.value.header.account_id);
         }
     }
     printf("teste 8\n");

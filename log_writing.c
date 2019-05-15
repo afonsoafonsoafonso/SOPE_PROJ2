@@ -46,28 +46,28 @@ void accountCreationLogWriting(const bank_account_t *account, int id)
 void requestSentLogWriting(const tlv_request_t *request, int id)
 {
     int fd=openLog(USER_LOGFILE);
-    lofRequest(fd, id, request);
+    logRequest(fd, id, request);
     closeLog(fd);
 }
 
 void requestReceivedLogWriting(const tlv_request_t *request, int id)
 {
     int fd=openLog(SERVER_LOGFILE);
-    lofRequest(fd, id, request);
+    logRequest(fd, id, request);
     closeLog(fd);
 }
 
 void replySentLogWriting(const tlv_reply_t *reply, int id)
 {
     int fd=openLog(SERVER_LOGFILE);
-    lofRequest(fd, id, reply);
+    logRequest(fd, id, reply);
     closeLog(fd);
 }
 
 void replyReceivedLogWriting(const tlv_reply_t *reply, int id)
 {
     int fd=openLog(USER_LOGFILE);
-    lofRequest(fd, id, reply);
+    logRequest(fd, id, reply);
     closeLog(fd);
 }
 
