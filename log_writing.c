@@ -95,6 +95,6 @@ void delayLogWriting(int id, uint32_t delay_ms)
 void syncDelayLogWriting(int id, int sid, uint32_t delay_ms)
 {
     int fd=openLog(USER_LOGFILE);
-    logDelay(fd, id, sid, delay_ms);
+    logSyncDelay(fd, id, sid, delay_ms);
     close(fd);
 }
