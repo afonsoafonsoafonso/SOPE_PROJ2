@@ -25,8 +25,9 @@ void initializeAccountsArray()
 {
     for (int i=0; i<MAX_BANK_ACCOUNTS; i++)
     {
+        pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
         accounts[i].account_id=1;
-        accounts[i].mutex = PTHREAD_MUTEX_INITIALIZER;
+        accounts[i].mutex = mut;
     }
 }
 
