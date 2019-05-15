@@ -124,7 +124,7 @@ bool check_permissions(int id_account, int operation_code)
 }
 
 //completar mais tarde
-void bank_shutdown(int server_fifo_fd)
+void bank_shutdown()
 {
     closed = true;
     //changing permission of the fifo
@@ -155,19 +155,16 @@ int argument_handler(int argc, char* argv[])
     return number_counters;
 }
 
-void initializeSems(int counter_number) {
+void initializeSems(int counter_number)
+{
     sem_init(&empty,0,counter_number);
     sem_init(&full,0,0);
     return;
 }
 
-void op_balance_handler(tlv_reply_t *reply, tlv_request_t request) {
-    int account_id=request.value.header.account_id;
-    reply->value.header.account_id = account_id;
-    reply->type = OP_BALANCE;
-    //lenght calculations
-    reply->length = sizeof(rep_header_t) + sizeof(rep_balance_t);
-
+void op_balance_handler(tlv_reply_t *reply)
+{
+    int account_id=reply->value.header.account_id
     pthread_mutex_lock(&(accounts[account_id].mutex));
     reply->value.header.ret_code = verifyAccountExistance(account_id);
     if (reply->value.header.ret_code == RC_OK)
@@ -175,22 +172,17 @@ void op_balance_handler(tlv_reply_t *reply, tlv_request_t request) {
     pthread_mutex_unlock(&(accounts[account_id].mutex));
 }
 
-void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request) {
+void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request)
+{
     int sender = request.value.header.account_id;
     int receiver = request.value.transfer.account_id;
     int amount = request.value.transfer.amount;
-    //lenght calculations
-    reply->length = sizeof(rep_header_t) + sizeof(rep_transfer_t);
-
-    reply->value.header.account_id = sender;
-    reply->type = OP_TRANSFER;
 
     pthread_mutex_lock(&(accounts[sender].mutex));
     pthread_mutex_lock(&(accounts[receiver].mutex));
     reply->value.header.ret_code = verifyTransfer(sender, receiver, amount);
     if(reply->value.header.ret_code==RC_OK)
         transfer(sender,receiver,amount);
-
     reply->value.transfer.balance = accounts[sender].balance;
     pthread_mutex_unlock(&(accounts[sender].mutex));
     pthread_mutex_lock(&(accounts[receiver].mutex));
@@ -198,13 +190,9 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request) {
 
 // não confirmei assim beeeem mas acho que o reply n precisa
 // de mais argumentos. confirmar melhor mais tarde
-void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request) {
-    int account_id = request.value.header.account_id;
-    reply->value.header.account_id = account_id;
-    reply->type = OP_CREATE_ACCOUNT;
-    //lenght calculations
-    reply->length = sizeof(rep_header_t);
-
+void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request)
+{
+    int account_id=reply->value.header.account_id
     int balance = request.value.create.balance;
     char passw[MAX_PASSWORD_LEN];
     strcpy(passw, request.value.create.password);
@@ -218,11 +206,38 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request) {
     pthread_mutex_unlock(&(accounts[account_id].mutex));
 }
 
+void op_close_bank_handler(tlv_reply_t *reply)
+{
+    reply->value.header.ret_code=RC_OK;
+    reply->value.shutdown.activeoffices=0; // não sei que valor se poe aqui
+    bank_shutdown();
+}
+
+void fillReply(tlv_reply_t *reply, tlv_request_t request)
+{
+    reply->value.header.account_id = request.value.header.account_id;
+    reply->type= request.type;
+    switch(request.type) {
+        case OP_BALANCE:
+            reply->length = sizeof(rep_header_t) + sizeof(rep_balance_t);
+            break;
+        case OP_TRANSFER:
+            reply->length = sizeof(rep_header_t) + sizeof(rep_transfer_t);
+            break;
+        case OP_CREATE_ACCOUNT:
+            reply->length = sizeof(rep_header_t);
+            break;
+        case OP_SHUTDOWN: 
+            reply->length = sizeof(rep_header_t) + sizeof(rep_shutdown_t);
+            break;
+        default:
+            break;
+    }
+}
+
 void requestHandler(tlv_request_t request) {
     tlv_reply_t reply;
-
-    uint32_t account_id = request.value.header.account_id;
-    reply.value.header.account_id = account_id;
+    fillReply(&reply, request)
 
     //checking if password is correct
     if(!checkLogin(account_id,request.value.header.password))
@@ -236,7 +251,7 @@ void requestHandler(tlv_request_t request) {
     else {
         switch(request.type) {
             case OP_BALANCE:
-                op_balance_handler(&reply,request);
+                op_balance_handler(&reply);
                 break;
             case OP_TRANSFER:
                 op_transfer_handler(&reply,request);
@@ -245,7 +260,7 @@ void requestHandler(tlv_request_t request) {
                 op_create_account_handler(&reply,request);
                 break;
             case OP_SHUTDOWN: 
-                //completar mais tarde(func n esta feita)
+                op_close_bank_handler(&reply);
                 break;
             default:
                 break;
