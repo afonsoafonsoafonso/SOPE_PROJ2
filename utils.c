@@ -58,10 +58,9 @@ void produceSha(const char* toEncrypt, char* encrypted)
     wait(NULL);
 }
 
-// ----------------------------- TO COMPLETE -----------------------------------
 void produceSalt(char* salt)
 {
-    char* temp;
+    char temp[64*4];
     strcpy(salt, "salt");
     sprintf(temp,"%ld",clock());
     strcat(salt, temp);

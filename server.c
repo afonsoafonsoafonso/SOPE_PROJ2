@@ -150,10 +150,8 @@ int argument_handler(int argc, char* argv[])
         printf("Password should have a length between %d and %d.\n", MIN_PASSWORD_LEN, MAX_PASSWORD_LEN);
         exit(2);
     } 
-
     //inicializing administrator account
     createAccount(ADMIN_ACCOUNT_ID, 0, password, 0);
-
     return number_counters;
 }
 
