@@ -255,6 +255,7 @@ void *counter(void *threadnum) {
     //falta o sem_getvalue que pelos vistos é preciso para os logs (???)
     int counter_id=*(int *) threadnum;
     bankOfficeOpenLogWriting(counter_id);
+    printf("%d\n", counter_id);
     int sem_value;
     sem_getvalue(&full, &sem_value);
     while(!closed && !sem_value) {
@@ -269,11 +270,11 @@ void *counter(void *threadnum) {
         sem_post(&empty);
         
     }
+    bankOfficeCloseLogWriting(counter_id);
     return NULL;
 }
 
-void create_counters(int counter_number) {
-    int aux[counter_number];
+void create_counters(int counter_number, int aux[]) {
     for(int i=0; i<counter_number; i++) {
         aux[i]=i;
         pthread_create(&counters[i], NULL, counter, (void *)&aux[i]);
@@ -286,20 +287,19 @@ int main(int argc, char* argv[])
     closed=false;
     initializeAccountsArray();
     int counter_number = argument_handler(argc, argv);
+    int aux[counter_number];
 
     createFifo(SERVER_FIFO_PATH);
+    printf("ola\n");
     server_fifo_fd = openReadFifo(SERVER_FIFO_PATH);
-
-    create_counters(counter_number);
-
-
+    create_counters(counter_number, aux);
 
     //ciclo (while !closed) para receber pedidos e colocar na fila de pedidos
     //as threads vao buscar as cenas a fila de pedidos e processam os pedidos
 
     //esperar que todas as thread terminem de processar todos os pedidos
-    /*for (int i = 0; i < 2; i++) {
-    pthread_join(tid[i], NULL);*/  
+    for (int i = 0; i < 2; i++)
+        pthread_join(counters[i], NULL);
 
 
     closeUnlinkFifo(SERVER_FIFO_PATH, server_fifo_fd);

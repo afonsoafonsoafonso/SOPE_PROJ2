@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/stat.h> 
 #include <fcntl.h>
+#include <errno.h>
 #include "constants.h"
 
 void produceSha(const char* toEncrypt, char* encrypted)
@@ -64,7 +65,7 @@ void produceSalt(char* salt)
 
 void createFifo(char* fifo_name)
 {
-    if (mkfifo(fifo_name,0660)<0)
+    if (mkfifo(fifo_name,0660)<0 && errno!=EEXIST)
     {
         printf("Can't create FIFO %s\n", fifo_name);
         exit(2);
