@@ -60,41 +60,41 @@ void requestReceivedLogWriting(const tlv_request_t *request, int id)
 void replySentLogWriting(const tlv_reply_t *reply, int id)
 {
     int fd=openLog(SERVER_LOGFILE);
-    logRequest(fd, id, reply);
+    logReply(fd, id, reply);
     closeLog(fd);
 }
 
 void replyReceivedLogWriting(const tlv_reply_t *reply, int id)
 {
     int fd=openLog(USER_LOGFILE);
-    logRequest(fd, id, reply);
+    logReply(fd, id, reply);
     closeLog(fd);
 }
 
 void syncMechLogWriting(int id, sync_mech_op_t smo, sync_role_t role, int sid)
 {
-    int fd=openLog(USER_LOGFILE);
+    int fd=openLog(SERVER_LOGFILE);
     logSyncMech(fd, id, smo, role, sid);
     close(fd);
 }
 
 void syncMechSemLogWriting(int id, sync_mech_op_t smo, sync_role_t role, int sid, int val)
 {
-    int fd=openLog(USER_LOGFILE);
+    int fd=openLog(SERVER_LOGFILE);
     logSyncMechSem(fd, id, smo, role, sid, val);
     close(fd);
 }
 
 void delayLogWriting(int id, uint32_t delay_ms)
 {
-    int fd=openLog(USER_LOGFILE);
+    int fd=openLog(SERVER_LOGFILE);
     logDelay(fd, id, delay_ms);
     close(fd);
 }
 
 void syncDelayLogWriting(int id, int sid, uint32_t delay_ms)
 {
-    int fd=openLog(USER_LOGFILE);
+    int fd=openLog(SERVER_LOGFILE);
     logSyncDelay(fd, id, sid, delay_ms);
     close(fd);
 }

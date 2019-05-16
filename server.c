@@ -151,7 +151,16 @@ int argument_handler(int argc, char* argv[])
         exit(2);
     } 
     //inicializing administrator account
+    pthread_mutex_lock(&(accounts[ADMIN_ACCOUNT_ID].mutex));
+    syncMechLogWriting(0, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, ADMIN_ACCOUNT_ID);
+
+    usleep(0*1000);
+    syncDelayLogWriting(0, ADMIN_ACCOUNT_ID, 0);
     createAccount(ADMIN_ACCOUNT_ID, 0, password, 0);
+
+    pthread_mutex_unlock(&(accounts[ADMIN_ACCOUNT_ID].mutex));
+    syncMechLogWriting(0, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, ADMIN_ACCOUNT_ID);
+    
     return number_counters;
 }
 
@@ -171,7 +180,7 @@ void op_balance_handler(tlv_reply_t *reply, int counter_id, tlv_request_t reques
 {
     int account_id=reply->value.header.account_id;
     pthread_mutex_lock(&(accounts[account_id].mutex));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, account_id);
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, account_id);
 
     usleep(request.value.header.op_delay_ms*1000);
     syncDelayLogWriting(counter_id, account_id, request.value.header.op_delay_ms);
@@ -181,7 +190,7 @@ void op_balance_handler(tlv_reply_t *reply, int counter_id, tlv_request_t reques
         reply->value.balance.balance = consultBalance(account_id);
 
     pthread_mutex_unlock(&(accounts[account_id].mutex));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, account_id);
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, account_id);
 }
 
 void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_id)
@@ -191,9 +200,9 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
     int amount = request.value.transfer.amount;
 
     pthread_mutex_lock(&(accounts[sender].mutex));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, sender);
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, sender);
     pthread_mutex_lock(&(accounts[receiver].mutex));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, receiver);
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, receiver);
 
     usleep(request.value.header.op_delay_ms*1000);
     syncDelayLogWriting(counter_id, sender, request.value.header.op_delay_ms);
@@ -204,9 +213,9 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
     reply->value.transfer.balance = accounts[sender].balance;
 
     pthread_mutex_lock(&(accounts[receiver].mutex));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, receiver);
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, receiver);
     pthread_mutex_unlock(&(accounts[sender].mutex));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, sender);
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, sender);
 }
 
 // não confirmei assim beeeem mas acho que o reply n precisa
@@ -219,7 +228,7 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
     strcpy(passw, request.value.create.password);
 
     pthread_mutex_lock(&(accounts[account_id].mutex));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, account_id);
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, account_id);
 
     usleep(request.value.header.op_delay_ms*1000);
     syncDelayLogWriting(counter_id, account_id, request.value.header.op_delay_ms);
@@ -230,7 +239,7 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
     createAccount(account_id, balance, passw, (int)pthread_self());
 
     pthread_mutex_unlock(&(accounts[account_id].mutex));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, account_id);
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, account_id);
 }
 
 void op_close_bank_handler(tlv_reply_t *reply, int counter_id , tlv_request_t request)
@@ -317,7 +326,7 @@ void *counter(void *threadnum) {
     sem_getvalue(&full, &sem_value);
     while(!closed && !sem_value) {
         sem_getvalue(&full, &sem_value);
-        syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, sem_value);
+        syncMechSemLogWriting(counter_id, SYNC_OP_SEM_WAIT, SYNC_ROLE_PRODUCER, 0, sem_value);
         sem_wait(&full);
 
         pthread_mutex_lock(&mutex);
@@ -332,7 +341,7 @@ void *counter(void *threadnum) {
 
         sem_post(&empty);
         sem_getvalue(&empty, &sem_value);
-        syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, sem_value);
+        syncMechSemLogWriting(counter_id, SYNC_OP_SEM_POST, SYNC_ROLE_PRODUCER, 0, sem_value);
     }
     bankOfficeCloseLogWriting(counter_id);
     return NULL;
@@ -353,6 +362,7 @@ int main(int argc, char* argv[])
     initializeAccountsArray();
     printf("teste 2\n");
     int counter_number = argument_handler(argc, argv);
+    initializeSems(counter_number);
     printf("teste 3\n");
     int aux[counter_number];
     printf("teste 4\n");
