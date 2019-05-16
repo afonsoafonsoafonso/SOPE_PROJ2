@@ -374,19 +374,28 @@ int main(int argc, char* argv[])
     create_counters(counter_number, aux);
     printf("teste 6\n");
     tlv_request_t request;
+    int sem_value;
+
     while(!closed)
     {
         if(read(server_fifo_fd, &request, sizeof(tlv_request_t))==sizeof(tlv_request_t)){
-            printf("teste 7\n");  
-                
-            pthread_mutex_lock(&mutex);
+            printf("teste 7\n");
+            sem_getvalue(&empty,&sem_value);
+            logSyncMechSem(0, MAIN_THREAD_ID, SYNC_OP_SEM_WAIT, SYNC_ROLE_PRODUCER, request.value.header.pid, sem_value);
+            sem_wait(&empty);
+
+            pthread_mutex_lock(&queue_mutex);
             syncMechLogWriting(0, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_PRODUCER, 0);
-            
+
             queue_insert(request);
             requestReceivedLogWriting(&request, 0);
 
-            pthread_mutex_unlock(&mutex);
+            pthread_mutex_unlock(&queue_mutex);
             syncMechLogWriting(0, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_PRODUCER, request.value.header.account_id);
+
+            sem_post(&full);
+            sem_getvalue(&full, &sem_value);
+            logSyncMechSem(0, MAIN_THREAD_ID, SYNC_OP_SEM_POST, SYNC_ROLE_PRODUCER, request.value.header.pid, sem_value);
         }
     }
     printf("teste 8\n");
