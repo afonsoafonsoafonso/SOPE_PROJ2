@@ -18,7 +18,7 @@ bool closed;
 sem_t full, empty;
 static bank_account_t accounts[MAX_BANK_ACCOUNTS];
 static pthread_t counters[MAX_BANK_OFFICES];
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 extern tlv_request_t request_queue[MAX_REQUESTS];
 
 void initializeAccountsArray()
@@ -265,7 +265,7 @@ void fillReply(tlv_reply_t *reply, tlv_request_t request)
             reply->length = sizeof(rep_header_t) + sizeof(rep_transfer_t);
             break;
         case OP_CREATE_ACCOUNT:
-            reply->length = sizeof(rep_header_t);
+            reply->length = sizeof(rep_header_t) + sizeof(req_create_account_t);
             break;
         case OP_SHUTDOWN: 
             reply->length = sizeof(rep_header_t) + sizeof(rep_shutdown_t);
@@ -328,17 +328,18 @@ void *counter(void *threadnum) {
         sem_getvalue(&full, &sem_value);
         syncMechSemLogWriting(counter_id, SYNC_OP_SEM_WAIT, SYNC_ROLE_PRODUCER, 0, sem_value);
         sem_wait(&full);
-
-        pthread_mutex_lock(&mutex);
+        //pthread_mutex_lock(&queue_mutex);
         syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, 0);
         tlv_request_t request;
+        //lock aqui apenas imediatamente antes de retirar da queue?
+        pthread_mutex_lock(&queue_mutex);
         queue_remove(&request);
+        pthread_mutex_unlock(&queue_mutex);
+
         requestReceivedLogWriting(&request, counter_id);
-        pthread_mutex_unlock(&mutex);
+        //pthread_mutex_unlock(&queue_mutex);
         syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, request.value.header.account_id);
-
         requestHandler(request, counter_id);
-
         sem_post(&empty);
         sem_getvalue(&empty, &sem_value);
         syncMechSemLogWriting(counter_id, SYNC_OP_SEM_POST, SYNC_ROLE_PRODUCER, 0, sem_value);

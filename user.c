@@ -169,12 +169,20 @@ void argument_handler(int argc, char* argv[])
         request.value.create=create_account_argument_handler(argv[5], strlen(argv[5]));
         request.length = sizeof(req_header_t) + sizeof(req_create_account_t);
     }
-    else if (operation_code == 3) {
-        request.value.transfer=transfer_argument_handler(argv[5], strlen(argv[5]));
-        request.length = sizeof(req_header_t) + sizeof(req_create_account_t);
+    else if (operation_code == 1) {
+        request.length = sizeof(req_header_t);
+        if(strlen(argv[5])!=0) 
+            printf("This operation does not take any arguments. They will be ignored.\n");
     }
-    else if (strlen(argv[5])!=0)
-        printf("This operation does not take any kind of arguments. Arguments inserted will be ignored.\n");
+    else if (operation_code == 2) {
+        request.value.transfer=transfer_argument_handler(argv[5], strlen(argv[5]));
+        request.length = sizeof(req_header_t) + sizeof(req_transfer_t);
+    }
+    else/*if (operation_code == 3)*/{
+        request.length = sizeof(req_header_t);
+        if(strlen(argv[5])!=0)
+            printf("This operation does not take any arguments. They will be ignored.\n");
+    }
 }
 
 int sendRequest(tlv_request_t request, int request_fifo_fd) {
