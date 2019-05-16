@@ -310,11 +310,19 @@ void requestHandler(tlv_request_t request, int counter_id) {
 
     //making reply fifo
     char reply_fifo_path[16];
+   // printf("dsuhf\n");
+
     sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, WIDTH_ID, request.value.header.pid);
+    printf("dsuhf\n");
+
     int reply_fifo_fd = openReadFifo(reply_fifo_path);
+    //printf("dsuhf\n");
+
     //valta verificar erros no write (perror???)
-    write(reply_fifo_fd, &reply, sizeof(reply));
+    write(reply_fifo_fd, &reply, reply.length); //sizeof(reply));
+    perror("cenas");
     replySentLogWriting(&reply, counter_id);
+    //printf("dsuhf\n");
     close(reply_fifo_fd);
 }
 

@@ -105,6 +105,7 @@ int openWriteFifo(char* fifo_name)
 
 void closeUnlinkFifo(char* fifo_name, int fd, int fd_dummy)
 {
+    sleep(2);//to do
     close(fd);
     close(fd_dummy);
     if (unlink(fifo_name)<0)
