@@ -111,7 +111,7 @@ bool checkLogin(int id_account, char* password)
     char hash[HASH_LEN+1];
     produceSha(salt_plus_password, hash);
     
-    if (hash == accounts[id_account].hash)
+    if (strcmp(hash, accounts[id_account].hash))
         return true;
     return false;
 }
