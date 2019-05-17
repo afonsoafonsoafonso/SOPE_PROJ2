@@ -53,7 +53,7 @@ void produceSha(const char* toEncrypt, char* encrypted)
     }
     close(fd[1]);
     int n;
-    n=read(fd[0], encrypted, HASH_LEN+1);
+    n=read(fd[0], encrypted, HASH_LEN);
     encrypted[n]='\0';
     wait(NULL);
 }
