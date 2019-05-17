@@ -309,7 +309,7 @@ void requestHandler(tlv_request_t request, int counter_id) {
     }
 
     //making reply fifo
-    char reply_fifo_path[16];
+    char reply_fifo_path[18];
    // printf("dsuhf\n");
 
     sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, WIDTH_ID, request.value.header.pid);
