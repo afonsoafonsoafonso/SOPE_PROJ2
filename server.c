@@ -313,7 +313,7 @@ void requestHandler(tlv_request_t request, int counter_id) {
    // printf("dsuhf\n");
 
     sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, WIDTH_ID, request.value.header.pid);
-    printf("dsuhf\n");
+   // printf("dsuhf\n");
 
     int reply_fifo_fd = openReadFifo(reply_fifo_path);
     //printf("dsuhf\n");
@@ -366,7 +366,10 @@ void create_counters(int counter_number, int aux[]) {
 
 int main(int argc, char* argv[])
 {
-    close(open(SERVER_LOGFILE,O_CREAT|O_WRONLY));
+    close(open(SERVER_LOGFILE,O_CREAT|O_WRONLY|O_TRUNC,0666));//cleans log
+    close(open(USER_LOGFILE,O_CREAT|O_WRONLY|O_TRUNC,0666));//cleans log
+    //remove(SERVER_LOGFILE);
+    //remove(USER_LOGFILE);
     closed=false;
     printf("teste 1\n");
     initializeAccountsArray();
@@ -377,7 +380,7 @@ int main(int argc, char* argv[])
     int aux[counter_number];
     printf("teste 4\n");
     createFifo(SERVER_FIFO_PATH);
-    printf("ola\n"); //por algum motivo sem isto dá falha de segmentação
+   // printf("ola\n"); //por algum motivo sem isto dá falha de segmentação
     server_fifo_fd = openReadFifo(SERVER_FIFO_PATH);
     printf("teste 5\n");
     create_counters(counter_number, aux);
