@@ -166,13 +166,13 @@ int argument_handler(int argc, char* argv[])
 
 void initializeSems(int counter_number)
 {
-    int sem_value;
-    sem_getvalue(&empty, &sem_value);
-    syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, sem_value);
+    //int sem_value;
+    //sem_getvalue(&empty, &sem_value);
+    syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, counter_number);
     sem_init(&empty,0,counter_number);
 
-    sem_getvalue(&full, &sem_value);
-    syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, sem_value);
+    //sem_getvalue(&full, &sem_value);
+    syncMechSemLogWriting(0, SYNC_OP_SEM_INIT, SYNC_ROLE_PRODUCER, 0, 0);
     sem_init(&full,0,0);
 }
 
