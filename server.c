@@ -129,6 +129,7 @@ void bank_shutdown()
 {
     closed = true;
     //changing permission of the fifo
+    chmod(SERVER_FIFO_PATH, 0444);
 }
 
 int argument_handler(int argc, char* argv[])
