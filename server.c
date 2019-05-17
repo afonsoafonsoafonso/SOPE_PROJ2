@@ -366,6 +366,7 @@ void create_counters(int counter_number, int aux[]) {
 
 int main(int argc, char* argv[])
 {
+    close(open(SERVER_LOGFILE,O_CREAT|O_WRONLY));
     closed=false;
     printf("teste 1\n");
     initializeAccountsArray();

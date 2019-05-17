@@ -218,6 +218,7 @@ ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
 
 int main(int argc, char* argv[])
 {
+    close(open(USER_LOGFILE,O_CREAT|O_WRONLY));
     argument_handler(argc, argv);
     printf("teste 1\n");
     int request_fifo_fd = openWriteFifo(SERVER_FIFO_PATH);
