@@ -25,7 +25,7 @@ void initializeAccountsArray()
 {
     for (int i=0; i<MAX_BANK_ACCOUNTS; i++){
         pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
-        accounts[i].account_id=1;
+        accounts[i].account_id=-1;
         accounts[i].mutex = mut;
     }
 }
@@ -222,7 +222,7 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
 // de mais argumentos. confirmar melhor mais tarde
 void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int counter_id)
 {
-    int account_id=reply->value.header.account_id;
+    int account_id=request.value.create.account_id;
     int balance = request.value.create.balance;
     char passw[MAX_PASSWORD_LEN];
     strcpy(passw, request.value.create.password);
