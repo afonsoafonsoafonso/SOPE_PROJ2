@@ -20,13 +20,14 @@ static bank_account_t accounts[MAX_BANK_ACCOUNTS];
 static pthread_t counters[MAX_BANK_OFFICES];
 pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 extern tlv_request_t request_queue[MAX_REQUESTS];
+static pthread_mutex_t mutexes[MAX_BANK_ACCOUNTS]={PTHREAD_MUTEX_INITIALIZER};
+
 
 void initializeAccountsArray()
 {
     for (int i=0; i<MAX_BANK_ACCOUNTS; i++){
-        pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
         accounts[i].account_id=-1;
-        accounts[i].mutex = mut;
+        accounts[i].mutex = mutexes[i];
     }
 }
 
@@ -226,10 +227,10 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
     int balance = request.value.create.balance;
     char passw[MAX_PASSWORD_LEN];
     strcpy(passw, request.value.create.password);
-    printf("leonor4\n");
-   // pthread_mutex_lock(&(accounts[account_id].mutex));
-    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, account_id);
-    printf("leonor3\n");
+
+    pthread_mutex_lock(&(accounts[account_id].mutex));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, account_id);
+
     usleep(request.value.header.op_delay_ms*1000);
     syncDelayLogWriting(counter_id, account_id, request.value.header.op_delay_ms);
 
@@ -237,9 +238,9 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
     if (reply->value.header.ret_code!=RC_OK)
         return;
     createAccount(account_id, balance, passw, (int)pthread_self());
-    printf("leonor2\n");
-    //pthread_mutex_unlock(&(accounts[account_id].mutex));
-    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, account_id);
+
+    pthread_mutex_unlock(&(accounts[account_id].mutex));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, account_id);
 }
 
 void op_close_bank_handler(tlv_reply_t *reply, int counter_id , tlv_request_t request)
@@ -360,23 +361,20 @@ int main(int argc, char* argv[])
 {
     close(open(SERVER_LOGFILE,O_CREAT|O_WRONLY|O_TRUNC,0666));//cleans log
     close(open(USER_LOGFILE,O_CREAT|O_WRONLY|O_TRUNC,0666));//cleans log
-    //remove(SERVER_LOGFILE);
-    //remove(USER_LOGFILE);
     closed=false;
-    printf("teste 1\n");
     initializeAccountsArray();
-    printf("teste 2\n");
+
     int counter_number = argument_handler(argc, argv);
     initializeSems(counter_number);
-    printf("teste 3\n");
+
     int aux[counter_number];
-    printf("teste 4\n");
+
     createFifo(SERVER_FIFO_PATH);
-   // printf("ola\n"); //por algum motivo sem isto dá falha de segmentação
+   
     server_fifo_fd = openReadFifo(SERVER_FIFO_PATH);
-    printf("teste 5\n");
+
     create_counters(counter_number, aux);
-    printf("teste 6\n");
+
     tlv_request_t request;
     int sem_value;
 
@@ -402,12 +400,12 @@ int main(int argc, char* argv[])
             logSyncMechSem(0, MAIN_THREAD_ID, SYNC_OP_SEM_POST, SYNC_ROLE_PRODUCER, request.value.header.pid, sem_value);
         }
     }
-    printf("teste 8\n");
+
     //esperar que todas as thread terminem de processar todos os pedidos
     for (int i = 0; i < 2; i++)
         pthread_join(counters[i], NULL);
-    printf("teste 9\n");
+
     closeUnlinkFifo(SERVER_FIFO_PATH, server_fifo_fd);
-    printf("teste 10\n");
+
     return 0;
 }
