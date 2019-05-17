@@ -80,7 +80,7 @@ void createFifo(char* fifo_name)
     }
 }
 
-int openReadFifo(char* fifo_name, int * fd_dummy)
+int openReadFifo(char* fifo_name)
 {
     int fd;    
     if ((fd=open(fifo_name, O_RDONLY | O_NONBLOCK)) <0)
@@ -88,7 +88,6 @@ int openReadFifo(char* fifo_name, int * fd_dummy)
         printf("Can't open FIFO %s\n", fifo_name);
         exit(2);
     }
-    *fd_dummy=open(fifo_name,O_WRONLY);
     return fd;
 }
 
@@ -103,11 +102,9 @@ int openWriteFifo(char* fifo_name)
     return fd;
 }
 
-void closeUnlinkFifo(char* fifo_name, int fd, int fd_dummy)
+void closeUnlinkFifo(char* fifo_name, int fd)
 {
-    sleep(2);//to do
     close(fd);
-    close(fd_dummy);
     if (unlink(fifo_name)<0)
     {
         printf("Error when destroying FIFO %s\n", fifo_name);

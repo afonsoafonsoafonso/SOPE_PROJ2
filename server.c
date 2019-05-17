@@ -332,7 +332,7 @@ void *counter(void *threadnum) {
     bankOfficeOpenLogWriting(counter_id);
     int sem_value;
     sem_getvalue(&full, &sem_value);
-    while(!closed && !sem_value) {
+    while(!closed && isEmpty(request_queue)) {
         sem_getvalue(&full, &sem_value);
         syncMechSemLogWriting(counter_id, SYNC_OP_SEM_WAIT, SYNC_ROLE_PRODUCER, 0, sem_value);
         sem_wait(&full);
