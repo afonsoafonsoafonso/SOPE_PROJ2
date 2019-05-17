@@ -226,10 +226,10 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
     int balance = request.value.create.balance;
     char passw[MAX_PASSWORD_LEN];
     strcpy(passw, request.value.create.password);
-
-    pthread_mutex_lock(&(accounts[account_id].mutex));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, account_id);
-
+    printf("leonor4\n");
+   // pthread_mutex_lock(&(accounts[account_id].mutex));
+    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, account_id);
+    printf("leonor3\n");
     usleep(request.value.header.op_delay_ms*1000);
     syncDelayLogWriting(counter_id, account_id, request.value.header.op_delay_ms);
 
@@ -237,9 +237,9 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
     if (reply->value.header.ret_code!=RC_OK)
         return;
     createAccount(account_id, balance, passw, (int)pthread_self());
-
-    pthread_mutex_unlock(&(accounts[account_id].mutex));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, account_id);
+    printf("leonor2\n");
+    //pthread_mutex_unlock(&(accounts[account_id].mutex));
+    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, account_id);
 }
 
 void op_close_bank_handler(tlv_reply_t *reply, int counter_id , tlv_request_t request)
@@ -307,22 +307,14 @@ void requestHandler(tlv_request_t request, int counter_id) {
                 break;
         }
     }
-
     //making reply fifo
     char reply_fifo_path[18];
-   // printf("dsuhf\n");
-
     sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, WIDTH_ID, request.value.header.pid);
-    printf("dsuhf\n");
 
-    int reply_fifo_fd = openReadFifo(reply_fifo_path);
-    //printf("dsuhf\n");
-
+    int reply_fifo_fd = openWriteFifo(reply_fifo_path);
     //valta verificar erros no write (perror???)
-    write(reply_fifo_fd, &reply, reply.length); //sizeof(reply));
-    perror("cenas");
+    write(reply_fifo_fd, &reply, sizeof(reply));
     replySentLogWriting(&reply, counter_id);
-    //printf("dsuhf\n");
     close(reply_fifo_fd);
 }
 
@@ -366,7 +358,7 @@ void create_counters(int counter_number, int aux[]) {
 
 int main(int argc, char* argv[])
 {
-    close(open(SERVER_LOGFILE,O_CREAT|O_WRONLY));
+    //close(open(SERVER_LOGFILE,O_CREAT|O_WRONLY));
     closed=false;
     printf("teste 1\n");
     initializeAccountsArray();
