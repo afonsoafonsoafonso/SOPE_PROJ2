@@ -60,13 +60,15 @@ void createAccount(int id, int balance, char* password, int thread_id)
     char salt_plus_password[strlen(password)+SALT_LEN+1];
     strcpy(salt_plus_password, password);
     strcat(salt_plus_password, salt);
-
     char hash[HASH_LEN+1];
+    
     produceSha(salt_plus_password, hash);
-    strcpy(account.hash, hash);
-
+    
+    strncpy(account.hash, hash,HASH_LEN+1);
     accounts[id]=account;
+
     accountCreationLogWriting(&account, thread_id);
+
 }
 
 ret_code_t verifyTransfer(int id_giver, int id_receiver, int amount)
@@ -111,8 +113,7 @@ bool checkLogin(int id_account, char* password)
 
     char hash[HASH_LEN+1];
     produceSha(salt_plus_password, hash);
-    
-    if (0==strcmp(hash, accounts[id_account].hash))
+    if (strcmp(hash, accounts[id_account].hash)==0)
         return true;
     return false;
 }
