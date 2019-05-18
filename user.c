@@ -193,6 +193,40 @@ int sendRequest(tlv_request_t request, int request_fifo_fd) {
     return 0;
 }
 
+void sendSelfReply(ret_code_t ret_code) {
+    char reply_fifo_path[18];
+    sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, WIDTH_ID, getpid());
+    int self_reply_fd = openWriteFifo(reply_fifo_path);
+
+    tlv_reply_t self_reply;
+    self_reply.value.header.account_id = request.value.header.account_id;
+    self_reply.value.header.ret_code = ret_code;
+    self_reply.type = request.type;
+
+    switch(self_reply.type) {
+        case OP_BALANCE:
+            self_reply.length = sizeof(rep_header_t) + sizeof(rep_balance_t);
+            break;
+        case OP_TRANSFER:
+            self_reply.length = sizeof(rep_header_t) + sizeof(rep_transfer_t);
+            break;
+        case OP_CREATE_ACCOUNT:
+            self_reply.length = sizeof(rep_header_t) + sizeof(req_create_account_t);
+            break;
+        case OP_SHUTDOWN: 
+            self_reply.length = sizeof(rep_header_t) + sizeof(rep_shutdown_t);
+            break;
+        default:
+            break;
+    }
+
+    write(self_reply_fd, &self_reply, sizeof(self_reply));
+    //inserir log
+    close(self_reply_fd);
+
+    return;
+}
+
 ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
     struct sigaction sigalarm;
     sigalarm.sa_handler=sigalarm_handler;
@@ -203,7 +237,7 @@ ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
         fprintf(stderr,"Unable to install SIGALRM handler\n");     
         exit(1);   
     }  
-    alarm(30); 
+    alarm(5); 
     while(!timeout) {
         if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t))==sizeof(tlv_reply_t)) {//falta o log
             //fazer o que há para fazer(caso haja algo mais que dar return ao codigo)
@@ -212,31 +246,50 @@ ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
             return reply->value.header.ret_code;
         }    
     }
+    if(timeout) {
+        sendSelfReply(RC_SRV_TIMEOUT);
+        read(reply_fifo_fd, reply, sizeof(tlv_reply_t));
+        replyReceivedLogWriting(reply, getpid());
+    }
 
     return RC_SRV_TIMEOUT;
 }
 
+
 int main(int argc, char* argv[])
 {
-    argument_handler(argc, argv);
-    printf("teste 1\n");
-    int request_fifo_fd = openWriteFifo(SERVER_FIFO_PATH);
-    printf("teste 2\n");
+    int reply_fifo_fd;
     char reply_fifo_path[18];
-    printf("teste 3\n");
-    sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, WIDTH_ID, getpid());
-    printf("teste 4\n");
-    createFifo(reply_fifo_path);
-    printf("teste 5\n");
-    int reply_fifo_fd = openReadFifo(reply_fifo_path);
-    printf("teste 6\n");
-    sendRequest(request, request_fifo_fd);
     tlv_reply_t reply;
+
+    argument_handler(argc, argv);
+    
+    int request_fifo_fd = openWriteFifo(SERVER_FIFO_PATH);
+    
+    if(request_fifo_fd==-1) {
+        requestSentLogWriting(&request, getpid());
+        sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, WIDTH_ID, getpid());
+        createFifo(reply_fifo_path);
+        reply_fifo_fd = openReadFifo(reply_fifo_path);
+        sendSelfReply(RC_SRV_DOWN);
+        read(reply_fifo_fd, &reply, sizeof(tlv_reply_t));
+        replyReceivedLogWriting(&reply, getpid());
+        return -1;
+    }
+    
+    sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, WIDTH_ID, getpid());
+    
+    createFifo(reply_fifo_path);
+    
+    reply_fifo_fd = openReadFifo(reply_fifo_path);
+    
+    sendRequest(request, request_fifo_fd);
+
     receiveReply(reply_fifo_fd,&reply);
-    printf("teste 7\n");
+    
     close(request_fifo_fd);
-    printf("teste 8\n");
+    
     closeUnlinkFifo(reply_fifo_path, reply_fifo_fd);
-    printf("teste 9\n");
+    
     return 0;
 }

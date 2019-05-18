@@ -93,11 +93,12 @@ int openReadFifo(char* fifo_name)
 
 int openWriteFifo(char* fifo_name)
 {
+    printf("AWIDONAWDOINWD\n");
     int fd;    
-    if ((fd=open(fifo_name, O_WRONLY | O_APPEND)) <0)
+    if ((fd=open(fifo_name, O_WRONLY | O_APPEND | O_NONBLOCK)) <0)
     {
-        printf("Can't open FIFO %s\n", fifo_name);
-        exit(2);
+        printf("Can't open FIFO %s. Server offline.\n", fifo_name);
+        return -1;
     }
     return fd;
 }
