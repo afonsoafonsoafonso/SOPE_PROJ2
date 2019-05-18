@@ -86,7 +86,7 @@ int openReadFifo(char* fifo_name)
     if ((fd=open(fifo_name, O_RDONLY | O_NONBLOCK)) <0)
     {
         printf("Can't open FIFO %s\n", fifo_name);
-        exit(2);
+        return -1;
     }
     return fd;
 }

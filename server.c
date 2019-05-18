@@ -314,8 +314,14 @@ void requestHandler(tlv_request_t request, int counter_id) {
     //making reply fifo
     char reply_fifo_path[18];
     sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, WIDTH_ID, request.value.header.pid);
-
+    printf("SLEEPING\n");
+    sleep(5);
     int reply_fifo_fd = openWriteFifo(reply_fifo_path);
+    if(reply_fifo_fd==-1) {
+        reply.value.header.ret_code = RC_USR_DOWN;
+        replySentLogWriting(&reply, counter_id);
+        return;
+    }
     //valta verificar erros no write (perror???)
     write(reply_fifo_fd, &reply, sizeof(reply));
     replySentLogWriting(&reply, counter_id);
@@ -335,7 +341,7 @@ void *counter(void *threadnum) {
         //pthread_mutex_lock(&queue_mutex);
         syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, 0);
         tlv_request_t request;
-        //lock aqui apenas imediatamente antes de retirar da queue?
+
         pthread_mutex_lock(&queue_mutex);
         queue_remove(&request);
         pthread_mutex_unlock(&queue_mutex);
@@ -375,6 +381,9 @@ int main(int argc, char* argv[])
     createFifo(SERVER_FIFO_PATH);
    
     server_fifo_fd = openReadFifo(SERVER_FIFO_PATH);
+    if(server_fifo_fd==-1) {
+
+    }
 
     create_counters(counter_number, aux);
 
@@ -383,7 +392,6 @@ int main(int argc, char* argv[])
 
     while(!closed)
     {
-        sleep(100);
         if(read(server_fifo_fd, &request, sizeof(tlv_request_t))==sizeof(tlv_request_t)){
             printf("teste 7\n");
             sem_getvalue(&empty,&sem_value);
