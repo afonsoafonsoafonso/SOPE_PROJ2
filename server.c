@@ -20,14 +20,13 @@ static bank_account_t accounts[MAX_BANK_ACCOUNTS];
 static pthread_t counters[MAX_BANK_OFFICES];
 pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 extern tlv_request_t request_queue[MAX_REQUESTS];
-//static pthread_mutex_t mutexes[MAX_BANK_ACCOUNTS];//={ [0 ... MAX_BANK_ACCOUNTS] = PTHREAD_MUTEX_INITIALIZER };;
+static pthread_mutex_t mutexes[MAX_BANK_ACCOUNTS] ={ [0 ... MAX_BANK_ACCOUNTS-1] = PTHREAD_MUTEX_INITIALIZER };
 
 
 void initializeAccountsArray()
 {
     for (int i=0; i<MAX_BANK_ACCOUNTS; i++){
         accounts[i].account_id=-1;
-        //accounts[i].mutex = mutexes[i];
     }
 }
 
@@ -38,11 +37,11 @@ ret_code_t check_account_creation(int id, int balance, char password[]) {
 
     if (strlen(password)<MIN_PASSWORD_LEN || strlen(password)>MAX_PASSWORD_LEN) {
         return RC_OTHER;
-    }//-> desnecessário. já é verificado no programa user
+    }
 
     if (balance < MIN_BALANCE || balance > MAX_BALANCE) {
         return RC_OTHER;
-    } //-> desnecessário. já é verificado no programa user
+    }
 
     return RC_OK;
 }
@@ -90,7 +89,7 @@ void transfer(int id_giver, int id_receiver, int amount)
     accounts[id_receiver].balance+=amount;
 }
 
-ret_code_t verifyAccountExistance(int id_account) //used in consultBalance
+ret_code_t verifyAccountExistance(int id_account)
 {
     if (accounts[id_account].account_id==-1)
         return RC_ID_NOT_FOUND;
@@ -125,7 +124,6 @@ bool check_permissions(int id_account, int operation_code)
     return true;
 }
 
-//completar mais tarde
 void bank_shutdown()
 {
     closed = true;
@@ -154,15 +152,15 @@ int argument_handler(int argc, char* argv[])
         exit(2);
     } 
     //inicializing administrator account
-    //pthread_mutex_lock(&(accounts[ADMIN_ACCOUNT_ID].mutex));
-    //syncMechLogWriting(0, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, ADMIN_ACCOUNT_ID);
+    pthread_mutex_lock(&(mutexes[ADMIN_ACCOUNT_ID]));
+    syncMechLogWriting(0, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, ADMIN_ACCOUNT_ID);
 
     usleep(0*1000);
     syncDelayLogWriting(0, ADMIN_ACCOUNT_ID, 0);
     createAccount(ADMIN_ACCOUNT_ID, 0, password, 0);
 
-    //pthread_mutex_unlock(&(accounts[ADMIN_ACCOUNT_ID].mutex));
-    //syncMechLogWriting(0, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, ADMIN_ACCOUNT_ID);
+    pthread_mutex_unlock(&(mutexes[ADMIN_ACCOUNT_ID]))
+    syncMechLogWriting(0, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, ADMIN_ACCOUNT_ID);
     
     return number_counters;
 }
@@ -182,9 +180,8 @@ void initializeSems(int counter_number)
 void op_balance_handler(tlv_reply_t *reply, int counter_id, tlv_request_t request)
 {
     int account_id=reply->value.header.account_id;
-    printf("Antes do mutex\n");
-    //pthread_mutex_lock(&(accounts[account_id].mutex));
-    printf("Depois do mutex\n");
+    
+    pthread_mutex_lock(&(mutexes[account_id]));
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, account_id);
 
     usleep(request.value.header.op_delay_ms*1000);
@@ -194,7 +191,7 @@ void op_balance_handler(tlv_reply_t *reply, int counter_id, tlv_request_t reques
     if (reply->value.header.ret_code == RC_OK)
         reply->value.balance.balance = consultBalance(account_id);
 
-    //pthread_mutex_unlock(&(accounts[account_id].mutex));
+    pthread_mutex_unlock(&(mutexes[account_id]));
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, account_id);
 }
 
@@ -204,10 +201,10 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
     int receiver = request.value.transfer.account_id;
     int amount = request.value.transfer.amount;
 
-    //pthread_mutex_lock(&(accounts[sender].mutex));
-    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, sender);
-    //pthread_mutex_lock(&(accounts[receiver].mutex));
-    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, receiver);
+    pthread_mutex_lock(&(mutexes[sender]));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, sender);
+    pthread_mutex_lock(&(mutexes[receiver]));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, receiver);
 
     usleep(request.value.header.op_delay_ms*1000);
     syncDelayLogWriting(counter_id, sender, request.value.header.op_delay_ms);
@@ -217,10 +214,10 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
         transfer(sender,receiver,amount);
     reply->value.transfer.balance = accounts[sender].balance;
 
-    //pthread_mutex_lock(&(accounts[receiver].mutex));
-    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, receiver);
-    //pthread_mutex_unlock(&(accounts[sender].mutex));
-    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, sender);
+    pthread_mutex_lock(&(mutexes[receiver]));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, receiver);
+    pthread_mutex_unlock(&(mutexes[sender]));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, sender);
 }
 
 void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int counter_id)
@@ -230,8 +227,8 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
     char passw[MAX_PASSWORD_LEN];
     strcpy(passw, request.value.create.password);
 
-    //pthread_mutex_lock(&(accounts[account_id].mutex));
-    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, account_id);
+    pthread_mutex_lock(&(mutexes[account_id]));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, account_id);
 
     usleep(request.value.header.op_delay_ms*1000);
     syncDelayLogWriting(counter_id, account_id, request.value.header.op_delay_ms);
@@ -241,7 +238,7 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
         return;
     createAccount(account_id, balance, passw, (int)pthread_self());
 
-    //pthread_mutex_unlock(&(accounts[account_id].mutex));
+    pthread_mutex_unlock(&(mutexes[account_id]));
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, account_id);
 }
 
@@ -338,18 +335,18 @@ void *counter(void *threadnum) {
         sem_getvalue(&full, &sem_value);
         syncMechSemLogWriting(counter_id, SYNC_OP_SEM_WAIT, SYNC_ROLE_PRODUCER, 0, sem_value);
         sem_wait(&full);
-        //pthread_mutex_lock(&queue_mutex);
-        syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, 0);
+
         tlv_request_t request;
 
         pthread_mutex_lock(&queue_mutex);
+        syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, 0);
         queue_remove(&request);
         pthread_mutex_unlock(&queue_mutex);
+        syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, request.value.header.account_id);
 
         requestReceivedLogWriting(&request, counter_id);
-        //pthread_mutex_unlock(&queue_mutex);
-        syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, request.value.header.account_id);
         requestHandler(request, counter_id);
+
         sem_post(&empty);
         sem_getvalue(&empty, &sem_value);
         syncMechSemLogWriting(counter_id, SYNC_OP_SEM_POST, SYNC_ROLE_PRODUCER, 0, sem_value);
@@ -393,7 +390,6 @@ int main(int argc, char* argv[])
     while(!closed)
     {
         if(read(server_fifo_fd, &request, sizeof(tlv_request_t))==sizeof(tlv_request_t)){
-            printf("teste 7\n");
             sem_getvalue(&empty,&sem_value);
             logSyncMechSem(0, MAIN_THREAD_ID, SYNC_OP_SEM_WAIT, SYNC_ROLE_PRODUCER, request.value.header.pid, sem_value);
             sem_wait(&empty);

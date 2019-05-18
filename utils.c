@@ -93,7 +93,6 @@ int openReadFifo(char* fifo_name)
 
 int openWriteFifo(char* fifo_name)
 {
-    printf("AWIDONAWDOINWD\n");
     int fd;    
     if ((fd=open(fifo_name, O_WRONLY | O_APPEND | O_NONBLOCK)) <0)
     {
