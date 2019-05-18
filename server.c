@@ -159,7 +159,7 @@ int argument_handler(int argc, char* argv[])
     syncDelayLogWriting(0, ADMIN_ACCOUNT_ID, 0);
     createAccount(ADMIN_ACCOUNT_ID, 0, password, 0);
 
-    pthread_mutex_unlock(&(mutexes[ADMIN_ACCOUNT_ID]))
+    pthread_mutex_unlock(&(mutexes[ADMIN_ACCOUNT_ID]));
     syncMechLogWriting(0, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, ADMIN_ACCOUNT_ID);
     
     return number_counters;
