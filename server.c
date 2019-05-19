@@ -75,8 +75,6 @@ ret_code_t verifyTransfer(int id_giver, int id_receiver, int amount)
 {
     if (accounts[id_giver].account_id==-1 || accounts[id_receiver].account_id==-1)
         return RC_ID_NOT_FOUND;
-    if (id_giver == id_receiver)
-        return RC_SAME_ID;
     if ((int)accounts[id_giver].balance - (int)amount < (int)MIN_BALANCE)
         return RC_NO_FUNDS;
     if ((int)accounts[id_receiver].balance + (int)amount > (int)MAX_BALANCE)
@@ -201,6 +199,12 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
     int sender = request.value.header.account_id;
     int receiver = request.value.transfer.account_id;
     int amount = request.value.transfer.amount;
+
+    if (sender==receiver)
+    {
+        reply->value.header.ret_code = RC_SAME_ID;
+        return;
+    }
 
     pthread_mutex_lock(&(mutexes[sender]));
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, sender);
