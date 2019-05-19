@@ -201,10 +201,10 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
     int receiver = request.value.transfer.account_id;
     int amount = request.value.transfer.amount;
 
-    pthread_mutex_lock(&(mutexes[sender]));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, sender);
-    pthread_mutex_lock(&(mutexes[receiver]));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, receiver);
+    //pthread_mutex_lock(&(mutexes[sender]));
+    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, sender);
+    //pthread_mutex_lock(&(mutexes[receiver]));
+    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, receiver);
 
     usleep(request.value.header.op_delay_ms*1000);
     syncDelayLogWriting(counter_id, sender, request.value.header.op_delay_ms);
@@ -214,10 +214,10 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
         transfer(sender,receiver,amount);
     reply->value.transfer.balance = accounts[sender].balance;
 
-    pthread_mutex_lock(&(mutexes[receiver]));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, receiver);
-    pthread_mutex_unlock(&(mutexes[sender]));
-    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, sender);
+    //pthread_mutex_lock(&(mutexes[receiver]));
+    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, receiver);
+    //pthread_mutex_unlock(&(mutexes[sender]));
+    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, sender);
 }
 
 void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int counter_id)
@@ -311,8 +311,6 @@ void requestHandler(tlv_request_t request, int counter_id) {
     //making reply fifo
     char reply_fifo_path[18];
     sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, WIDTH_ID, request.value.header.pid);
-    printf("SLEEPING\n");
-    sleep(5);
     int reply_fifo_fd = openWriteFifo(reply_fifo_path);
     if(reply_fifo_fd==-1) {
         reply.value.header.ret_code = RC_USR_DOWN;
