@@ -21,6 +21,7 @@ static pthread_t counters[MAX_BANK_OFFICES];
 pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 extern tlv_request_t request_queue[MAX_REQUESTS];
 static pthread_mutex_t mutexes[MAX_BANK_ACCOUNTS] ={ [0 ... MAX_BANK_ACCOUNTS-1] = PTHREAD_MUTEX_INITIALIZER };
+static int active_offices;
 
 
 void initializeAccountsArray()
@@ -251,6 +252,7 @@ void op_close_bank_handler(tlv_reply_t *reply, int counter_id , tlv_request_t re
     delayLogWriting(counter_id, request.value.header.op_delay_ms);
 
     bank_shutdown();
+    active_offices--;
 }
 
 void fillReply(tlv_reply_t *reply, tlv_request_t request)
@@ -367,6 +369,7 @@ int main(int argc, char* argv[])
     initializeAccountsArray();
 
     int counter_number = argument_handler(argc, argv);
+    active_offices=counter_number;
     initializeSems(counter_number);
 
     int aux[counter_number];
@@ -412,10 +415,8 @@ int main(int argc, char* argv[])
     }
     //esperar que todas as thread terminem de processar todos os pedidos
     for (int i = 0; i < counter_number; i++) {
-        printf("aodnawodnwaod\n");
         pthread_join(counters[i], NULL);
     }
-    printf("aodwinwaodnawoi\n");
     sem_destroy(&empty);
     sem_destroy(&full);
     //closeLog();
