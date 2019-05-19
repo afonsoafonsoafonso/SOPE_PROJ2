@@ -22,7 +22,7 @@ extern tlv_request_t request_queue[MAX_REQUESTS];
 static pthread_mutex_t mutexes[MAX_BANK_ACCOUNTS] ={ [0 ... MAX_BANK_ACCOUNTS-1] = PTHREAD_MUTEX_INITIALIZER };
 static int active_offices;
 
-
+//Initialize accounts by setting each accont_id to -1
 void initializeAccountsArray()
 {
     for (int i=0; i<MAX_BANK_ACCOUNTS; i++){
@@ -30,6 +30,7 @@ void initializeAccountsArray()
     }
 }
 
+//Returns the ret_code of the operaton account cretaion
 ret_code_t check_account_creation(int id, int balance, char password[]) {
     if(accounts[id].account_id!=-1) {
         return RC_ID_IN_USE;
@@ -46,6 +47,7 @@ ret_code_t check_account_creation(int id, int balance, char password[]) {
     return RC_OK;
 }
 
+//Creates an account
 void createAccount(int id, int balance, char* password, int thread_id)
 {
     bank_account_t account;
@@ -70,6 +72,7 @@ void createAccount(int id, int balance, char* password, int thread_id)
 
 }
 
+//Returns the ret_code for a transfer
 ret_code_t verifyTransfer(int id_giver, int id_receiver, int amount)
 {
     if (accounts[id_giver].account_id==-1 || accounts[id_receiver].account_id==-1)
@@ -81,6 +84,7 @@ ret_code_t verifyTransfer(int id_giver, int id_receiver, int amount)
     return RC_OK;
 }
 
+//Transfers from de id_giver account to the id_receiver account the amount amount
 void transfer(int id_giver, int id_receiver, int amount)
 {
     accounts[id_giver].balance-=amount;
@@ -255,7 +259,6 @@ void op_close_bank_handler(tlv_reply_t *reply, int counter_id , tlv_request_t re
     delayLogWriting(counter_id, request.value.header.op_delay_ms);
 
     bank_shutdown();
-    active_offices--;
 }
 
 void fillReply(tlv_reply_t *reply, tlv_request_t request)
@@ -343,12 +346,14 @@ void *counter(void *threadnum) {
         pthread_mutex_lock(&queue_mutex);
         syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_CONSUMER, 0);
         queue_remove(&request);
+        active_offices++;
         pthread_mutex_unlock(&queue_mutex);
         syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_CONSUMER, request.value.header.account_id);
 
         requestReceivedLogWriting(&request, counter_id);
         requestHandler(request, counter_id);
 
+        active_offices--;
         sem_post(&empty);
         sem_getvalue(&empty, &sem_value);
         syncMechSemLogWriting(counter_id, SYNC_OP_SEM_POST, SYNC_ROLE_PRODUCER, request.value.header.account_id, sem_value);
@@ -372,7 +377,7 @@ int main(int argc, char* argv[])
     initializeAccountsArray();
 
     int counter_number = argument_handler(argc, argv);
-    active_offices=counter_number;
+    active_offices=0;
     initializeSems(counter_number);
 
     int aux[counter_number];

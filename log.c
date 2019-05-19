@@ -80,6 +80,7 @@ int logRequest(int fd, int id, const tlv_request_t *request) {
   return -2;
 }
 
+//has been modified
 int logReply(int fd, int id, const tlv_reply_t *reply) {
   if (!reply)
     return -1;

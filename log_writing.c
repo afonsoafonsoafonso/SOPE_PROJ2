@@ -1,4 +1,4 @@
-// server.c 
+// log_writing.c - contains auxiliary functions - intermediary between server.c/user.c and log.c
 // Developed by: 
 // João Araujo - 201705577
 // Leonor Sousa - 201705377

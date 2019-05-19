@@ -1,4 +1,4 @@
-// server.c 
+// log_writing.h 
 // Developed by: 
 // João Araujo - 201705577
 // Leonor Sousa - 201705377
