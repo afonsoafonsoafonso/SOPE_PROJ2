@@ -20,9 +20,9 @@ bool timeout = false;
 void sigalarm_handler(int signo) {  
     printf("In SIGALRM handler ...\n");
     timeout=true;
-    //print_logf
 } 
 
+//handles the specific arguments that come with the operation create account
 req_create_account_t create_account_argument_handler(char* args, int args_size)
 {
     req_create_account_t create;
@@ -80,6 +80,7 @@ req_create_account_t create_account_argument_handler(char* args, int args_size)
     return create;
 }
 
+//handles the specific arguments that come with the operation transfer
 req_transfer_t transfer_argument_handler(char* args, int args_size)
 {
     req_transfer_t transfer;
@@ -124,6 +125,7 @@ req_transfer_t transfer_argument_handler(char* args, int args_size)
     return transfer;
 }
 
+//handles all the arguments
 void argument_handler(int argc, char* argv[])
 {
     if (argc!=6)
@@ -183,6 +185,7 @@ void argument_handler(int argc, char* argv[])
     }
 }
 
+//sends the request to the server fifo
 int sendRequest(tlv_request_t request, int request_fifo_fd) {
     if(write(request_fifo_fd, &request, sizeof(tlv_request_t))==-1) {
         return -1;
@@ -191,6 +194,7 @@ int sendRequest(tlv_request_t request, int request_fifo_fd) {
     return 0;
 }
 
+//sends a reply to itself -> used in case of server down
 void sendSelfReply(ret_code_t ret_code) {
     char reply_fifo_path[18];
     sprintf(reply_fifo_path, "%s%0*d", USER_FIFO_PATH_PREFIX, WIDTH_ID, getpid());
@@ -225,6 +229,7 @@ void sendSelfReply(ret_code_t ret_code) {
     return;
 }
 
+//receives a reply from the server
 ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
     struct sigaction sigalarm;
     sigalarm.sa_handler=sigalarm_handler;

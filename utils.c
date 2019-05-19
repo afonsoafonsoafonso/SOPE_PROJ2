@@ -19,6 +19,7 @@
 #include "constants.h"
 #include <time.h>
 
+//function that produces an hash/sha256sum
 void produceSha(const char* toEncrypt, char* encrypted)
 {
     int fd[2];
@@ -65,6 +66,7 @@ void produceSha(const char* toEncrypt, char* encrypted)
     wait(NULL);
 }
 
+//produces a random salt based on current time and pid of the process
 void produceSalt(char* salt)
 {
     char temp[64*4];
@@ -78,6 +80,7 @@ void produceSalt(char* salt)
         strcat(salt, temp);}
 }
 
+//creates a fifo with the name fifo_name
 void createFifo(char* fifo_name)
 {
     if (mkfifo(fifo_name,0660)<0 && errno!=EEXIST)
@@ -87,6 +90,7 @@ void createFifo(char* fifo_name)
     }
 }
 
+//opens a fifo in read mode
 int openReadFifo(char* fifo_name)
 {
     int fd;    
@@ -98,6 +102,7 @@ int openReadFifo(char* fifo_name)
     return fd;
 }
 
+//opens a fifo in write mode
 int openWriteFifo(char* fifo_name)
 {
     int fd;    
@@ -109,6 +114,7 @@ int openWriteFifo(char* fifo_name)
     return fd;
 }
 
+//closes and unlinks a fifo
 void closeUnlinkFifo(char* fifo_name, int fd)
 {
     close(fd);

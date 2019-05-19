@@ -91,6 +91,7 @@ void transfer(int id_giver, int id_receiver, int amount)
     accounts[id_receiver].balance+=amount;
 }
 
+//verifies if an account exists
 ret_code_t verifyAccountExistance(int id_account)
 {
     if (accounts[id_account].account_id==-1)
@@ -98,11 +99,13 @@ ret_code_t verifyAccountExistance(int id_account)
     return RC_OK;
 }
 
+//consults the balance of an account
 uint32_t consultBalance(int id_account)
 {
     return accounts[id_account].balance;
 }
 
+//checks if a password is valid for an account
 bool checkLogin(int id_account, char* password)
 {
     char salt[SALT_LEN+1];
@@ -119,6 +122,7 @@ bool checkLogin(int id_account, char* password)
     return false;
 }
 
+//checks if a user as permissions for a certain operation
 bool check_permissions(int id_account, int operation_code)
 {
     if (( operation_code== OP_CREATE_ACCOUNT || operation_code==OP_SHUTDOWN) && id_account!=ADMIN_ACCOUNT_ID )
@@ -126,6 +130,7 @@ bool check_permissions(int id_account, int operation_code)
     return true;
 }
 
+//shutsdown the bank
 void bank_shutdown()
 {
     closed = true;
@@ -133,6 +138,7 @@ void bank_shutdown()
     chmod(SERVER_FIFO_PATH, 0444);
 }
 
+//handles the arguments received
 int argument_handler(int argc, char* argv[])
 {
     if (argc!=3)
@@ -168,6 +174,7 @@ int argument_handler(int argc, char* argv[])
     return number_counters;
 }
 
+//initializes all the sems
 void initializeSems(int counter_number)
 {
     //int sem_value;
@@ -180,6 +187,7 @@ void initializeSems(int counter_number)
     sem_init(&full,0,0);
 }
 
+//handles the operation balance
 void op_balance_handler(tlv_reply_t *reply, int counter_id, tlv_request_t request)
 {
     int account_id=reply->value.header.account_id;
@@ -198,6 +206,7 @@ void op_balance_handler(tlv_reply_t *reply, int counter_id, tlv_request_t reques
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, account_id);
 }
 
+//handles the transfer operation
 void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_id)
 {
     int sender = request.value.header.account_id;
@@ -229,6 +238,7 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, receiver);
 }
 
+//handles the account creation operation
 void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int counter_id)
 {
     int account_id=request.value.create.account_id;
@@ -250,6 +260,7 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, account_id);
 }
 
+//handles the shutdown operation
 void op_close_bank_handler(tlv_reply_t *reply, int counter_id , tlv_request_t request)
 {
     reply->value.header.ret_code=RC_OK;
@@ -261,6 +272,7 @@ void op_close_bank_handler(tlv_reply_t *reply, int counter_id , tlv_request_t re
     bank_shutdown();
 }
 
+//fills the basic values in the reply data structure
 void fillReply(tlv_reply_t *reply, tlv_request_t request)
 {
     reply->value.header.account_id = request.value.header.account_id;
@@ -283,6 +295,7 @@ void fillReply(tlv_reply_t *reply, tlv_request_t request)
     }
 }
 
+//handles a request, calling the respective handler of the operation
 void requestHandler(tlv_request_t request, int counter_id) {
     tlv_reply_t reply;
     fillReply(&reply, request);
@@ -330,6 +343,7 @@ void requestHandler(tlv_request_t request, int counter_id) {
     close(reply_fifo_fd);
 }
 
+//thread/ bank office/counter function
 void *counter(void *threadnum) {
     int counter_id=*(int *) threadnum;
     bankOfficeOpenLogWriting(counter_id);
@@ -362,6 +376,7 @@ void *counter(void *threadnum) {
     return NULL;
 }
 
+//creates the counters
 void create_counters(int counter_number, int aux[]) {
     for(int i=0; i<counter_number; i++) {
         aux[i]=i+1;
