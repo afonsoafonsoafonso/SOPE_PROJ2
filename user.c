@@ -241,8 +241,6 @@ ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
     while(!timeout) {
         if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t))==sizeof(tlv_reply_t)) {
             alarm(0);//para os alarmes pendentes
-             if (reply->value.header.ret_code==RC_LOGIN_FAIL)
-                reply->value.balance.balance=0;
             replyReceivedLogWriting(reply, getpid());
             return reply->value.header.ret_code;
         }    
