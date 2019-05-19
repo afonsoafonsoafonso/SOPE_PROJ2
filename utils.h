@@ -1,3 +1,10 @@
+// server.c 
+// Developed by: 
+// João Araujo - 201705577
+// Leonor Sousa - 201705377
+// Afonso Mendonça - 201706708
+// SOPE - MIEIC2 - 2018/2019
+
 void produceSha(const char* toEncrypt, char* encrypted);
 
 void produceSalt(char* salt);
