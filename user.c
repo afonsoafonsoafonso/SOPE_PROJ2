@@ -91,14 +91,12 @@ req_transfer_t transfer_argument_handler(char* args, int args_size)
     if (aux!=NULL)
     {
         transfer.account_id=atoi(aux);
-        printf("%d\n", transfer.account_id);
 
         aux=strtok(NULL, " ");
         if (aux!=NULL)
             transfer.amount=atoi(aux); 
         else
-            failure=1;
-        printf("%d\n", transfer.amount);  
+            failure=1; 
     }
     else
         failure=1;

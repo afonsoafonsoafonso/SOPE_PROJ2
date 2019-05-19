@@ -21,6 +21,7 @@ static pthread_t counters[MAX_BANK_OFFICES];
 pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 extern tlv_request_t request_queue[MAX_REQUESTS];
 static pthread_mutex_t mutexes[MAX_BANK_ACCOUNTS] ={ [0 ... MAX_BANK_ACCOUNTS-1] = PTHREAD_MUTEX_INITIALIZER };
+static int active_offices;
 
 
 void initializeAccountsArray()
@@ -245,12 +246,13 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
 void op_close_bank_handler(tlv_reply_t *reply, int counter_id , tlv_request_t request)
 {
     reply->value.header.ret_code=RC_OK;
-    reply->value.shutdown.active_offices=0; // não sei que valor se poe aqui
+    reply->value.shutdown.active_offices=active_offices; // não sei que valor se poe aqui
 
     usleep(request.value.header.op_delay_ms*1000);
     delayLogWriting(counter_id, request.value.header.op_delay_ms);
 
     bank_shutdown();
+    active_offices--;
 }
 
 void fillReply(tlv_reply_t *reply, tlv_request_t request)
@@ -330,6 +332,7 @@ void *counter(void *threadnum) {
         sem_getvalue(&full, &sem_value);
         syncMechSemLogWriting(counter_id, SYNC_OP_SEM_WAIT, SYNC_ROLE_PRODUCER, 0, sem_value);
         sem_wait(&full);
+        if(closed==true) break;
 
         tlv_request_t request;
 
@@ -366,16 +369,13 @@ int main(int argc, char* argv[])
     initializeAccountsArray();
 
     int counter_number = argument_handler(argc, argv);
+    active_offices=counter_number;
     initializeSems(counter_number);
 
     int aux[counter_number];
 
     createFifo(SERVER_FIFO_PATH);
-   
     server_fifo_fd = openReadFifo(SERVER_FIFO_PATH);
-    if(server_fifo_fd==-1) {
-
-    }
 
     create_counters(counter_number, aux);
 
@@ -404,12 +404,15 @@ int main(int argc, char* argv[])
         }
     }
 
+    //posting full sempahore in order to make exiting threads
+    //not get stuck there
+    for (int i=0; i<counter_number; i++) {
+        sem_post(&full);
+    }
     //esperar que todas as thread terminem de processar todos os pedidos
-    for (int i = 0; i < 2; i++) {
-        printf("aodnawodnwaod\n");
+    for (int i = 0; i < counter_number; i++) {
         pthread_join(counters[i], NULL);
     }
-    printf("aodwinwaodnawoi\n");
     sem_destroy(&empty);
     sem_destroy(&full);
     //closeLog();
