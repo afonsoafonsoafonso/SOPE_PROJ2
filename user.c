@@ -237,7 +237,7 @@ ret_code_t receiveReply(int reply_fifo_fd, tlv_reply_t *reply) {
         fprintf(stderr,"Unable to install SIGALRM handler\n");     
         exit(1);   
     }  
-    alarm(3); 
+    alarm(FIFO_TIMEOUT_SECS); 
     while(!timeout) {
         if(read(reply_fifo_fd, reply, sizeof(tlv_reply_t))==sizeof(tlv_reply_t)) {
             alarm(0);//para os alarmes pendentes
