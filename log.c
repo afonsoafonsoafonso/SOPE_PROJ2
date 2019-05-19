@@ -99,8 +99,10 @@ int logReply(int fd, int id, const tlv_reply_t *reply) {
                 WIDTH_BALANCE, reply->value.transfer.balance);
       else return atomicPrintf(fd, "%s\n", logBaseReplyInfo(id, buffer, reply));
     case OP_SHUTDOWN:
-      return atomicPrintf(fd, "%s %d\n", logBaseReplyInfo(id, buffer, reply),
+      if (reply->value.header.ret_code==RC_OK)
+        return atomicPrintf(fd, "%s %d\n", logBaseReplyInfo(id, buffer, reply),
                           reply->value.shutdown.active_offices);
+      else return atomicPrintf(fd, "%s\n", logBaseReplyInfo(id, buffer, reply));
     default: break;
   }
 

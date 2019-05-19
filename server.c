@@ -329,7 +329,6 @@ void requestHandler(tlv_request_t request, int counter_id) {
 
 void *counter(void *threadnum) {
     int counter_id=*(int *) threadnum;
-    printf("%d\n", counter_id);
     bankOfficeOpenLogWriting(counter_id);
     int sem_value;
     sem_getvalue(&full, &sem_value);
