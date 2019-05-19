@@ -315,10 +315,11 @@ void requestHandler(tlv_request_t request, int counter_id) {
     if(reply_fifo_fd==-1) {
         reply.value.header.ret_code = RC_USR_DOWN;
         replySentLogWriting(&reply, counter_id);
-        return;
     }
-    write(reply_fifo_fd, &reply, sizeof(reply));
-    replySentLogWriting(&reply, counter_id);
+    else{
+        write(reply_fifo_fd, &reply, sizeof(reply));
+        replySentLogWriting(&reply, counter_id);
+    }
     close(reply_fifo_fd);
 }
 
@@ -357,7 +358,6 @@ void create_counters(int counter_number, int aux[]) {
         aux[i]=i+1;
         pthread_create(&counters[i], NULL, counter, (void *)&aux[i]);
     }
-    return;
 }
 
 int main(int argc, char* argv[])
