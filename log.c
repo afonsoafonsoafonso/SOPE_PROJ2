@@ -89,13 +89,15 @@ int logReply(int fd, int id, const tlv_reply_t *reply) {
   switch (reply->type) {
     case OP_CREATE_ACCOUNT: return atomicPrintf(fd, "%s\n", logBaseReplyInfo(id, buffer, reply));
     case OP_BALANCE:
-      if (reply->value.header.ret_code!=RC_LOGIN_FAIL)
+      if (reply->value.header.ret_code==RC_OK)
         return atomicPrintf(fd, "%s %*d€\n", logBaseReplyInfo(id, buffer, reply),
                           WIDTH_BALANCE, reply->value.balance.balance);
-      else return atomicPrintf(fd, "%s \n", logBaseReplyInfo(id, buffer, reply));
+      else return atomicPrintf(fd, "%s\n", logBaseReplyInfo(id, buffer, reply));
     case OP_TRANSFER:
-      return atomicPrintf(fd, "%s %*d€\n", logBaseReplyInfo(id, buffer, reply),
-                          WIDTH_BALANCE, reply->value.transfer.balance);
+      if (reply->value.header.ret_code==RC_OK)
+        return atomicPrintf(fd, "%s %*d€\n", logBaseReplyInfo(id, buffer, reply),
+                WIDTH_BALANCE, reply->value.transfer.balance);
+      else return atomicPrintf(fd, "%s\n", logBaseReplyInfo(id, buffer, reply));
     case OP_SHUTDOWN:
       return atomicPrintf(fd, "%s %d\n", logBaseReplyInfo(id, buffer, reply),
                           reply->value.shutdown.active_offices);
