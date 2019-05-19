@@ -25,14 +25,14 @@ void closeLog(int fd)
 void bankOfficeOpenLogWriting(int id)
 {
     int fd=openLog(SERVER_LOGFILE);
-    logBankOfficeOpen(fd, id, pthread_self());
+    logBankOfficeOpen(fd, pthread_self(), id);
     close(fd);
 }
 
 void bankOfficeCloseLogWriting(int id)
 {
     int fd=openLog(SERVER_LOGFILE);
-    logBankOfficeClose(fd, id, pthread_self());
+    logBankOfficeClose(fd, pthread_self(), id);
     close(fd);
 }
 
