@@ -180,7 +180,7 @@ void initializeSems(int counter_number)
 void op_balance_handler(tlv_reply_t *reply, int counter_id, tlv_request_t request)
 {
     int account_id=reply->value.header.account_id;
-    
+
     pthread_mutex_lock(&(mutexes[account_id]));
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, account_id);
 
@@ -201,10 +201,10 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
     int receiver = request.value.transfer.account_id;
     int amount = request.value.transfer.amount;
 
-    //pthread_mutex_lock(&(mutexes[sender]));
-    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, sender);
-    //pthread_mutex_lock(&(mutexes[receiver]));
-    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, receiver);
+    pthread_mutex_lock(&(mutexes[sender]));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, sender);
+    pthread_mutex_lock(&(mutexes[receiver]));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, receiver);
 
     usleep(request.value.header.op_delay_ms*1000);
     syncDelayLogWriting(counter_id, sender, request.value.header.op_delay_ms);
@@ -214,10 +214,10 @@ void op_transfer_handler(tlv_reply_t *reply, tlv_request_t request, int counter_
         transfer(sender,receiver,amount);
     reply->value.transfer.balance = accounts[sender].balance;
 
-    //pthread_mutex_lock(&(mutexes[receiver]));
-    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, receiver);
-    //pthread_mutex_unlock(&(mutexes[sender]));
-    //syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, sender);
+    pthread_mutex_unlock(&(mutexes[sender]));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, sender);
+    pthread_mutex_unlock(&(mutexes[receiver]));
+    syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, receiver);
 }
 
 void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int counter_id)
@@ -292,7 +292,6 @@ void requestHandler(tlv_request_t request, int counter_id) {
     else {
         switch(request.type) {
             case OP_BALANCE:
-                printf("Chega ao balance handler\n");
                 op_balance_handler(&reply, counter_id, request);
                 break;
             case OP_TRANSFER:
@@ -317,14 +316,12 @@ void requestHandler(tlv_request_t request, int counter_id) {
         replySentLogWriting(&reply, counter_id);
         return;
     }
-    //valta verificar erros no write (perror???)
     write(reply_fifo_fd, &reply, sizeof(reply));
     replySentLogWriting(&reply, counter_id);
     close(reply_fifo_fd);
 }
 
 void *counter(void *threadnum) {
-    //falta o sem_getvalue que pelos vistos é preciso para os logs (???)
     int counter_id=*(int *) threadnum;
     bankOfficeOpenLogWriting(counter_id);
     int sem_value;
