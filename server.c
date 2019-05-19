@@ -330,6 +330,7 @@ void *counter(void *threadnum) {
         sem_getvalue(&full, &sem_value);
         syncMechSemLogWriting(counter_id, SYNC_OP_SEM_WAIT, SYNC_ROLE_PRODUCER, 0, sem_value);
         sem_wait(&full);
+        if(closed==true) break;
 
         tlv_request_t request;
 
@@ -404,8 +405,13 @@ int main(int argc, char* argv[])
         }
     }
 
+    //posting full sempahore in order to make exiting threads
+    //not get stuck there
+    for (int i=0; i<counter_number; i++) {
+        sem_post(&full);
+    }
     //esperar que todas as thread terminem de processar todos os pedidos
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < counter_number; i++) {
         printf("aodnawodnwaod\n");
         pthread_join(counters[i], NULL);
     }
