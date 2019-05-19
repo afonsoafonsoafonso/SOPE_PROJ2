@@ -235,9 +235,8 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
     syncDelayLogWriting(counter_id, account_id, request.value.header.op_delay_ms);
 
     reply->value.header.ret_code = check_account_creation(account_id, balance, passw);
-    if (reply->value.header.ret_code!=RC_OK)
-        return;
-    createAccount(account_id, balance, passw, (int)pthread_self());
+    if (reply->value.header.ret_code==RC_OK)
+        createAccount(account_id, balance, passw, (int)pthread_self());
 
     pthread_mutex_unlock(&(mutexes[account_id]));
     syncMechLogWriting(counter_id, SYNC_OP_MUTEX_UNLOCK, SYNC_ROLE_ACCOUNT, account_id);
