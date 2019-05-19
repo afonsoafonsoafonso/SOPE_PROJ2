@@ -4,7 +4,6 @@
 // Leonor Sousa - 201705377
 // Afonso Mendonça - 201706708
 // SOPE - MIEIC2 - 2018/2019
-#include <pthread.h> 
 #include <string.h>
 #include <semaphore.h>
 #include <pthread.h>
@@ -152,6 +151,7 @@ int argument_handler(int argc, char* argv[])
     } 
     //inicializing administrator account
     pthread_mutex_lock(&(mutexes[ADMIN_ACCOUNT_ID]));
+
     syncMechLogWriting(0, SYNC_OP_MUTEX_LOCK, SYNC_ROLE_ACCOUNT, ADMIN_ACCOUNT_ID);
 
     usleep(0*1000);
@@ -329,6 +329,7 @@ void requestHandler(tlv_request_t request, int counter_id) {
 
 void *counter(void *threadnum) {
     int counter_id=*(int *) threadnum;
+    printf("%d\n", counter_id);
     bankOfficeOpenLogWriting(counter_id);
     int sem_value;
     sem_getvalue(&full, &sem_value);
