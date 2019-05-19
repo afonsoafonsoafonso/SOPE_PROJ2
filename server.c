@@ -375,11 +375,7 @@ int main(int argc, char* argv[])
     int aux[counter_number];
 
     createFifo(SERVER_FIFO_PATH);
-   
     server_fifo_fd = openReadFifo(SERVER_FIFO_PATH);
-    if(server_fifo_fd==-1) {
-
-    }
 
     create_counters(counter_number, aux);
 
