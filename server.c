@@ -264,7 +264,7 @@ void op_create_account_handler(tlv_reply_t *reply, tlv_request_t request, int co
 void op_close_bank_handler(tlv_reply_t *reply, int counter_id , tlv_request_t request)
 {
     reply->value.header.ret_code=RC_OK;
-    reply->value.shutdown.active_offices=active_offices;
+    reply->value.shutdown.active_offices=active_offices-1;
 
     usleep(request.value.header.op_delay_ms*1000);
     delayLogWriting(counter_id, request.value.header.op_delay_ms);
