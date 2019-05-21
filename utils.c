@@ -40,14 +40,14 @@ void produceSha(const char* toEncrypt, char* encrypted)
         pid=fork();
         if (pid<0)
         {
-            perror("Error ocured in fork.\n");
+            perror("Error ocurred in fork.\n");
             exit(50);
         }
         if (pid==0)
         {
             close(fd2[0]);
             dup2(fd2[1], STDOUT_FILENO);
-            execlp("echo", "echo", toEncrypt, NULL);
+            execlp("echo", "echo", "-n",toEncrypt, NULL);
             perror("Error on call to echo.\n");
             exit(50);
         }
@@ -63,21 +63,21 @@ void produceSha(const char* toEncrypt, char* encrypted)
     int n;
     n=read(fd[0], encrypted, HASH_LEN);
     encrypted[n]='\0';
+    printf("%s\n",encrypted);
     wait(NULL);
 }
 
 //produces a random salt based on current time and pid of the process
 void produceSalt(char* salt)
 {
-    char temp[64*4];
-    strcpy(salt, "salt");
-    sprintf(temp,"%ld",clock());
-    strcat(salt, temp);
-    sprintf(temp,"%d",getpid());
+    char temp[20];
+    sprintf(salt,"%lx",clock());
+    sprintf(temp,"%x",getpid());
     strcat(salt, temp);
     while (strlen(salt)<64){
-        sprintf(temp,"%d",(rand() % 10));
+        sprintf(temp,"%x",(rand() % 16));
         strcat(salt, temp);}
+        printf("%s\n",salt);
 }
 
 //creates a fifo with the name fifo_name
