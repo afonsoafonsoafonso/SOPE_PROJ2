@@ -7,6 +7,7 @@
 #include <string.h>
 #include <semaphore.h>
 #include <pthread.h>
+#include <ctype.h>
 #include "log_writing.h"
 #include "utils.h"
 #include "queue.h"
@@ -146,8 +147,14 @@ int argument_handler(int argc, char* argv[])
         printf("Number of arguments unexpected.\nPlease use the following syntax: ./server <number_eletronic_counters> \"<password>\"\n");
         exit(1);
     }
+    char* str = argv[1];
+    for (int i=0;i<strlen(str);i++)
+        if (!isdigit(str[i])){
+            printf("%s is not a number.\n",argv[1]);
+            exit(1);
+        }
     int number_counters = atoi(argv[1]);
-    if (number_counters<0 || number_counters>MAX_BANK_OFFICES)
+    if (number_counters<1 || number_counters>MAX_BANK_OFFICES)
     {
         printf("Number of eletronic counters must be less or equal to %d.\n", MAX_BANK_OFFICES);
         exit(1);

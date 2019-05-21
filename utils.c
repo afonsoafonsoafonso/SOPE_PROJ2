@@ -63,7 +63,7 @@ void produceSha(const char* toEncrypt, char* encrypted)
     int n;
     n=read(fd[0], encrypted, HASH_LEN);
     encrypted[n]='\0';
-    printf("%s\n",encrypted);
+    //printf("%s\n",encrypted);
     wait(NULL);
 }
 
@@ -77,7 +77,7 @@ void produceSalt(char* salt)
     while (strlen(salt)<64){
         sprintf(temp,"%x",(rand() % 16));
         strcat(salt, temp);}
-        printf("%s\n",salt);
+    //printf("%s\n",salt);
 }
 
 //creates a fifo with the name fifo_name
