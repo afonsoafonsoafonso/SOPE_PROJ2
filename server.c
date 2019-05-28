@@ -128,6 +128,8 @@ bool check_permissions(int id_account, int operation_code)
 {
     if (( operation_code== OP_CREATE_ACCOUNT || operation_code==OP_SHUTDOWN) && id_account!=ADMIN_ACCOUNT_ID )
         return false;
+    if ((operation_code== OP_BALANCE || operation_code==OP_TRANSFER) && id_account==ADMIN_ACCOUNT_ID)
+        return false;
     return true;
 }
 
@@ -292,7 +294,7 @@ void fillReply(tlv_reply_t *reply, tlv_request_t request)
             reply->length = sizeof(rep_header_t) + sizeof(rep_transfer_t);
             break;
         case OP_CREATE_ACCOUNT:
-            reply->length = sizeof(rep_header_t) + sizeof(req_create_account_t);
+            reply->length = sizeof(rep_header_t) ;
             break;
         case OP_SHUTDOWN: 
             reply->length = sizeof(rep_header_t) + sizeof(rep_shutdown_t);
